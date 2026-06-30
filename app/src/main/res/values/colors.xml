@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="safehome_primary_blue">#4F8DF7</color>
+    <color name="safehome_light_blue">#A7C8FF</color>
+    <color name="safehome_green">#7ED19F</color>
+    <color name="safehome_background">#F1F5F9</color>
+    <color name="safehome_text_dark">#1E293B</color>
+    <color name="safehome_text_muted">#64748B</color>
+    <color name="safehome_card_white">#FFFFFF</color>
+    <color name="safehome_field_fill">#F8FAFC</color>
+    <color name="safehome_blue_deep">#2563EB</color>
+    <color name="safehome_blue_soft">#EAF2FF</color>
+    <color name="safehome_mint_soft">#E8F8EF</color>
+    <color name="safehome_glass">#CFFFFFFF</color>
+    <color name="safehome_glass_stroke">#E6FFFFFF</color>
+    <color name="safehome_glass_shadow">#1A2563EB</color>
+    <color name="safehome_input_glass">#B8FFFFFF</color>
+</resources>

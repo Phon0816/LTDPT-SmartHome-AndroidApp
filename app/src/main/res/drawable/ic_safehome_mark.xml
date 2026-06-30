@@ -1,0 +1,35 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <path
+        android:pathData="M18,43 L48,18 L78,43"
+        android:strokeColor="@color/safehome_primary_blue"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent" />
+    <path
+        android:pathData="M25,42 L25,64 C25,75 35,83 48,87 C61,83 71,75 71,64 L71,42"
+        android:strokeColor="@color/safehome_primary_blue"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent" />
+    <path
+        android:pathData="M34,58 C39,63 44,66 48,66 C52,66 57,63 62,58 L62,68 C62,76 54,81 48,83 C42,81 34,76 34,68 Z"
+        android:fillColor="@color/safehome_green" />
+    <path
+        android:pathData="M39,37 L46,37 L46,44 L39,44 Z"
+        android:fillColor="@color/safehome_light_blue" />
+    <path
+        android:pathData="M50,37 L57,37 L57,44 L50,44 Z"
+        android:fillColor="@color/safehome_light_blue" />
+    <path
+        android:pathData="M39,48 L46,48 L46,55 L39,55 Z"
+        android:fillColor="@color/safehome_light_blue" />
+    <path
+        android:pathData="M50,48 L57,48 L57,55 L50,55 Z"
+        android:fillColor="@color/safehome_light_blue" />
+</vector>

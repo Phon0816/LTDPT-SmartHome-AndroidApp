@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_auth_screen"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:overScrollMode="never"
+    tools:context=".LoginActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:minHeight="760dp"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="58dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="34dp">
+
+        <ImageView
+            android:layout_width="104dp"
+            android:layout_height="104dp"
+            android:background="@drawable/bg_logo_glass"
+            android:contentDescription="SafeHome"
+            android:elevation="12dp"
+            android:padding="18dp"
+            android:src="@drawable/ic_safehome_mark" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:includeFontPadding="false"
+            android:text="SafeHome"
+            android:textColor="@color/safehome_text_dark"
+            android:textSize="40sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.14"
+            android:text="AIOT SAFETY SYSTEM"
+            android:textColor="@color/safehome_primary_blue"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="36dp"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="30dp"
+            app:cardElevation="14dp"
+            app:strokeWidth="0dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_auth_glass_card">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="76dp"
+                    android:background="@drawable/bg_card_highlight" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="24dp"
+                    android:paddingTop="28dp"
+                    android:paddingEnd="24dp"
+                    android:paddingBottom="26dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:includeFontPadding="false"
+                        android:text="Đăng nhập"
+                        android:textColor="@color/safehome_text_dark"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingExtra="3dp"
+                        android:text="Theo dõi ngôi nhà thông minh và an toàn của bạn."
+                        android:textColor="@color/safehome_text_muted"
+                        android:textSize="15sp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp"
+                        android:background="@drawable/bg_auth_input"
+                        android:hint="Email"
+                        app:boxBackgroundMode="none"
+                        app:hintTextColor="@color/safehome_primary_blue"
+                        app:startIconDrawable="@drawable/ic_email_safehome"
+                        app:startIconTint="@color/safehome_primary_blue">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edtEmail"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:background="@android:color/transparent"
+                            android:imeOptions="actionNext"
+                            android:inputType="textEmailAddress"
+                            android:paddingTop="0dp"
+                            android:paddingBottom="0dp"
+                            android:singleLine="true"
+                            android:textColor="@color/safehome_text_dark"
+                            android:textColorHint="@color/safehome_text_muted"
+                            android:textSize="15sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:background="@drawable/bg_auth_input"
+                        android:hint="Mật khẩu"
+                        app:boxBackgroundMode="none"
+                        app:endIconMode="password_toggle"
+                        app:endIconTint="@color/safehome_primary_blue"
+                        app:hintTextColor="@color/safehome_primary_blue"
+                        app:startIconDrawable="@drawable/ic_lock_safehome"
+                        app:startIconTint="@color/safehome_primary_blue">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edtPassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:background="@android:color/transparent"
+                            android:imeOptions="actionDone"
+                            android:inputType="textPassword"
+                            android:paddingTop="0dp"
+                            android:paddingBottom="0dp"
+                            android:singleLine="true"
+                            android:textColor="@color/safehome_text_dark"
+                            android:textColorHint="@color/safehome_text_muted"
+                            android:textSize="15sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLogin"
+                        android:layout_width="match_parent"
+                        android:layout_height="58dp"
+                        android:layout_marginTop="24dp"
+                        android:background="@drawable/bg_auth_button"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="Đăng nhập"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="@null"
+                        app:cornerRadius="22dp" />
+
+                    <TextView
+                        android:id="@+id/txtRegisterLink"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="18dp"
+                        android:background="@drawable/bg_auth_link_chip"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingStart="16dp"
+                        android:paddingTop="9dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="9dp"
+                        android:text="Chưa có tài khoản? Đăng ký"
+                        android:textColor="@color/safehome_blue_deep"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:lineSpacingExtra="3dp"
+            android:text="Giám sát cháy, khí gas và môi trường sống an toàn"
+            android:textColor="@color/safehome_text_muted"
+            android:textSize="13sp" />
+    </LinearLayout>
+</ScrollView>
