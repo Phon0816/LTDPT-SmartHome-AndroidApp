@@ -93,10 +93,28 @@
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLogout"
+            android:id="@+id/btnNotifications"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="24dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Thông báo"
+            android:textAllCaps="false"
+            android:textColor="@color/safehome_blue_deep"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/safehome_blue_soft"
+            app:cornerRadius="18dp"
+            app:icon="@android:drawable/ic_dialog_info"
+            app:iconGravity="textStart"
+            app:iconTint="@color/safehome_blue_deep" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="14dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:text="Đăng xuất"

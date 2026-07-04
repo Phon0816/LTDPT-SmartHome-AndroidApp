@@ -13,6 +13,7 @@ import com.example.safehome.data.remote.RetrofitClient
 import com.example.safehome.data.repository.AuthRepository
 import com.example.safehome.ui.auth.AuthViewModel
 import com.example.safehome.ui.auth.AuthViewModelFactory
+import com.example.safehome.ui.notification.NotificationActivity
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 
@@ -23,6 +24,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var txtName: TextView
     private lateinit var txtEmail: TextView
     private lateinit var txtRole: TextView
+    private lateinit var btnNotifications: MaterialButton
     private lateinit var btnLogout: MaterialButton
     private var openedLogin = false
     private var lastErrorMessage: String? = null
@@ -37,7 +39,12 @@ class HomeActivity : AppCompatActivity() {
         txtName = findViewById(R.id.txtName)
         txtEmail = findViewById(R.id.txtEmail)
         txtRole = findViewById(R.id.txtRole)
+        btnNotifications = findViewById(R.id.btnNotifications)
         btnLogout = findViewById(R.id.btnLogout)
+
+        btnNotifications.setOnClickListener {
+            startActivity(Intent(this, NotificationActivity::class.java))
+        }
 
         btnLogout.setOnClickListener {
             authViewModel.logout()
@@ -46,6 +53,7 @@ class HomeActivity : AppCompatActivity() {
         lifecycleScope.launch {
             authViewModel.uiState.collect { state ->
                 btnLogout.isEnabled = !state.isLoading
+                btnNotifications.isEnabled = !state.isLoading
 
                 if (state.isLoading) {
                     txtStatus.text = "Đang kiểm tra phiên đăng nhập..."
