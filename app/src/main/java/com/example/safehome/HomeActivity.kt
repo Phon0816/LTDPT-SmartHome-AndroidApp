@@ -2,6 +2,7 @@ package com.example.safehome
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -14,11 +15,12 @@ import com.example.safehome.data.remote.RetrofitClient
 import com.example.safehome.data.repository.AuthRepository
 import com.example.safehome.ui.auth.AuthViewModel
 import com.example.safehome.ui.auth.AuthViewModelFactory
-import com.google.android.material.button.MaterialButton
-import kotlinx.coroutines.launch
+import com.example.safehome.ui.home.ClaimDeviceBottomSheet
 import com.example.safehome.ui.home.HomeViewModel
 import com.example.safehome.ui.home.HomeViewModelFactory
 import com.example.safehome.data.repository.DeviceRepository
+import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.launch
 
 class HomeActivity : AppCompatActivity() {
 
@@ -75,11 +77,12 @@ class HomeActivity : AppCompatActivity() {
         bindStaticSensor("Temp", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Humid", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Gas", "N/A", "Chưa kết nối", "#94A3B8")
-        bindStaticSensor("Aqi", "N/A", "Chưa kết nối", "#94A3B8")
+        bindStaticSensor("Buzzer", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Fire", "N/A", "Chưa kết nối", "#94A3B8")
 
         lifecycleScope.launch {
             authViewModel.uiState.collect { state ->
+                Log.d("HomeActivity", "🔐 auth state: isLoading=${state.isLoading} isLoggedIn=${state.isLoggedIn} user=${state.currentUser?.email} err=${state.errorMessage}")
                 btnLogout?.isEnabled = !state.isLoading
                 
                 if (state.isLoading) {
@@ -100,6 +103,7 @@ class HomeActivity : AppCompatActivity() {
                 }
 
                 if (!state.isLoggedIn) {
+                    Log.d("HomeActivity", "❌ Not logged in, opening login")
                     openLogin()
                     return@collect
                 }
@@ -119,6 +123,7 @@ class HomeActivity : AppCompatActivity() {
 
                     if (!hasLoadedDevices) {
                         hasLoadedDevices = true
+                        Log.d("HomeActivity", "🚀 Triggering loadDevices() for user=${user.email}")
                         homeViewModel.loadDevices()
                     }
                 }
@@ -128,6 +133,18 @@ class HomeActivity : AppCompatActivity() {
         // Theo dõi dữ liệu cảm biến từ HomeViewModel để cập nhật giao diện
         lifecycleScope.launch {
             homeViewModel.uiState.collect { state ->
+                // Hiện nút Thêm thiết bị khi không có device nào
+                val btnAddDevice = findViewByName<MaterialButton>("btnAddDevice")
+                if (state.hasNoDevices) {
+                    btnAddDevice?.visibility = View.VISIBLE
+                    btnAddDevice?.setOnClickListener {
+                        ClaimDeviceBottomSheet()
+                            .show(supportFragmentManager, ClaimDeviceBottomSheet.TAG)
+                    }
+                } else {
+                    btnAddDevice?.visibility = View.GONE
+                }
+
                 val latest = state.latestReading
                 if (latest != null) {
                     // Cập nhật Nhiệt độ
@@ -154,15 +171,12 @@ class HomeActivity : AppCompatActivity() {
                     val mq2StatusText = if (mq2Status == "SAFE") "Bình thường" else "Rò rỉ khói/gas!"
                     bindStaticSensor("Gas", "$mq2Ppm ppm", mq2StatusText, mq2Color)
 
-                    // Cập nhật Chất lượng không khí (MQ-135 quy đổi ADC sang AQI)
-                    val rawMq135 = latest.sensor.mq135Raw
-                    val mq135Aqi = if (rawMq135 > 400) {
-                        ((rawMq135 - 400).toDouble() / (4095 - 400) * 500).toInt().coerceAtLeast(0)
-                    } else 0
-                    val mq135Status = latest.status.mq135
-                    val mq135Color = if (mq135Status == "SAFE") "#22C55E" else "#EF4444"
-                    val mq135StatusText = if (mq135Status == "SAFE") "Tốt" else "Ô nhiễm!"
-                    bindStaticSensor("Aqi", "$mq135Aqi AQI", mq135StatusText, mq135Color)
+                    // Cập nhật Còi báo (Buzzer)
+                    val buzzerActive = latest.control.buzzerActive
+                    val buzzerValueText = if (buzzerActive) "BẬT" else "TẮT"
+                    val buzzerStatusText = if (buzzerActive) "Đang kêu!" else "Bình thường"
+                    val buzzerColor = if (buzzerActive) "#EF4444" else "#22C55E"
+                    bindStaticSensor("Buzzer", buzzerValueText, buzzerStatusText, buzzerColor)
 
                     // Cập nhật Phát hiện lửa
                     val flame = latest.sensor.flameDetected

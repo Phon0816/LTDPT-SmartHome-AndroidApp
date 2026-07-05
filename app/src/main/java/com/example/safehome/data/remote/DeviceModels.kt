@@ -8,6 +8,21 @@ data class DeviceDto(
     val createdAt: String?
 )
 
+data class DeviceListResponse(
+    val data: List<DeviceDto>
+)
+
+data class ClaimDeviceRequest(
+    val deviceCode: String,
+    val deviceSecret: String,
+    val deviceName: String
+)
+
+data class ClaimDeviceResponse(
+    val message: String?,
+    val device: DeviceDto?
+)
+
 data class DeviceHistoryResponse(
     val pagination: PaginationDto,
     val data: List<HistoryRecordDto>

@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingBottom="32dp">
+
+    <!-- Handle bar -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="20dp"
+        android:background="#E2E8F0"
+        android:backgroundTint="#CBD5E1"/>
+
+    <!-- Header với icon -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingHorizontal="24dp"
+        android:paddingBottom="24dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            app:cardCornerRadius="32dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#EFF6FF"
+            app:strokeWidth="0dp"
+            android:layout_marginBottom="16dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="📡"
+                android:textSize="28sp"/>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thêm thiết bị"
+            android:textColor="#0F172A"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nhập thông tin để kết nối thiết bị với tài khoản của bạn"
+            android:textColor="#64748B"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"/>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#F1F5F9"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Form fields -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp">
+
+        <!-- Device Code field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mã thiết bị (MQTT)"
+            android:textColor="#374151"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilDeviceCode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxStrokeColor="#CBD5E1"
+            app:boxStrokeWidth="1dp"
+            app:hintTextColor="#94A3B8">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDeviceCode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="VD: DEV123456"
+                android:inputType="text"
+                android:textColor="#1E293B"
+                android:textSize="15sp"
+                android:padding="14dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Device Secret field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mật khẩu thiết bị"
+            android:textColor="#374151"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilDeviceSecret"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxStrokeColor="#CBD5E1"
+            app:boxStrokeWidth="1dp"
+            app:hintTextColor="#94A3B8"
+            app:endIconMode="password_toggle">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDeviceSecret"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Mật khẩu do admin cấp"
+                android:inputType="textPassword"
+                android:textColor="#1E293B"
+                android:textSize="15sp"
+                android:padding="14dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Device Name field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Đặt tên thiết bị"
+            android:textColor="#374151"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilDeviceName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxStrokeColor="#CBD5E1"
+            app:boxStrokeWidth="1dp"
+            app:hintTextColor="#94A3B8">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDeviceName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="VD: Cảm biến phòng khách"
+                android:inputType="text"
+                android:textColor="#1E293B"
+                android:textSize="15sp"
+                android:padding="14dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Error text -->
+        <TextView
+            android:id="@+id/txtClaimError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:text=""
+            android:textColor="#EF4444"
+            android:textSize="13sp"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
+            android:background="#FFF5F5"
+            android:padding="10dp"/>
+
+        <!-- Nút xác nhận -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClaimDevice"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="Kết nối thiết bị"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            app:backgroundTint="#3B82F6"
+            app:cornerRadius="14dp"
+            app:elevation="0dp"/>
+
+        <!-- Nút huỷ -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelClaim"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Huỷ"
+            android:textColor="#64748B"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            app:backgroundTint="#F1F5F9"
+            app:cornerRadius="14dp"
+            app:elevation="0dp"/>
+    </LinearLayout>
+
+</LinearLayout>
