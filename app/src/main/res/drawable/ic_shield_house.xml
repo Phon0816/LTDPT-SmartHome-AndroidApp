@@ -1,0 +1,28 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+  <!-- House Roof and Walls -->
+  <path
+      android:strokeWidth="6"
+      android:strokeColor="#4F8DF7"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M60,15 L15,50 L15,100 M60,15 L105,50 L105,100" />
+  <!-- Windows -->
+  <path
+      android:fillColor="#4F8DF7"
+      android:pathData="M48,50 h10 v10 h-10 z M62,50 h10 v10 h-10 z M48,64 h10 v10 h-10 z M62,64 h10 v10 h-10 z" />
+  <!-- Shield Badge at the bottom center -->
+  <path
+      android:fillColor="#10B981"
+      android:pathData="M60,65 C78,65 85,85 60,110 C35,85 42,65 60,65 z" />
+  <!-- Checkmark inside Shield -->
+  <path
+      android:strokeWidth="4"
+      android:strokeColor="#FFFFFF"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M52,85 L58,91 L70,77" />
+</vector>

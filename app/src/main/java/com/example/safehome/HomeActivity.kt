@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.example.safehome.R
 import com.example.safehome.data.local.TokenManager
 import com.example.safehome.data.remote.RetrofitClient
 import com.example.safehome.data.repository.AuthRepository
@@ -15,15 +16,19 @@ import com.example.safehome.ui.auth.AuthViewModel
 import com.example.safehome.ui.auth.AuthViewModelFactory
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.safehome.data.SensorItem
+import com.example.safehome.ui.HomeAdapter
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var authViewModel: AuthViewModel
-    private lateinit var txtStatus: TextView
-    private lateinit var txtName: TextView
-    private lateinit var txtEmail: TextView
-    private lateinit var txtRole: TextView
-    private lateinit var btnLogout: MaterialButton
+    private var txtStatus: TextView? = null
+    private var txtName: TextView? = null
+    private var txtEmail: TextView? = null
+    private var txtRole: TextView? = null
+    private var btnLogout: MaterialButton? = null
     private var openedLogin = false
     private var lastErrorMessage: String? = null
 
@@ -33,28 +38,56 @@ class HomeActivity : AppCompatActivity() {
 
         authViewModel = createAuthViewModel()
 
-        txtStatus = findViewById(R.id.txtStatus)
-        txtName = findViewById(R.id.txtName)
-        txtEmail = findViewById(R.id.txtEmail)
-        txtRole = findViewById(R.id.txtRole)
-        btnLogout = findViewById(R.id.btnLogout)
+        txtStatus = findViewByName("txtStatus")
+        txtName = findViewByName("txtName")
+        txtEmail = findViewByName("txtEmail")
+        txtRole = findViewByName("txtRole")
+        btnLogout = findViewByName("btnLogout")
 
-        btnLogout.setOnClickListener {
+        btnLogout?.setOnClickListener {
             authViewModel.logout()
         }
 
+        // Xử lý ẩn hiện chấm thông báo xanh khi click (tìm động bằng tên ID tránh crash khi chưa kéo thả)
+        val notificationBadge = findViewByName<View>("notificationBadge")
+        val bellContainer = findViewByName<View>("bellContainer")
+        bellContainer?.setOnClickListener {
+            notificationBadge?.visibility = View.GONE
+            Toast.makeText(this, "Đã đọc tất cả thông báo", Toast.LENGTH_SHORT).show()
+        }
+
+        // Gán dữ liệu cho 5 ô cảm biến tĩnh (tìm động bằng ID tránh crash khi người dùng đang kéo thả thiết kế)
+        val bindStaticSensor = { prefix: String, value: String, status: String, statusColor: String ->
+            val txtValue = findViewByName<TextView>("txt${prefix}Value")
+            val txtStatus = findViewByName<TextView>("txt${prefix}Status")
+            val viewDot = findViewByName<View>("view${prefix}Dot")
+            
+            txtValue?.text = value
+            txtStatus?.text = status
+            try {
+                txtStatus?.setTextColor(android.graphics.Color.parseColor(statusColor))
+                viewDot?.background?.setTint(android.graphics.Color.parseColor(statusColor))
+            } catch (e: Exception) {}
+        }
+
+        bindStaticSensor("Temp", "N/A", "Chưa kết nối", "#94A3B8")
+        bindStaticSensor("Humid", "N/A", "Chưa kết nối", "#94A3B8")
+        bindStaticSensor("Gas", "N/A", "Chưa kết nối", "#94A3B8")
+        bindStaticSensor("Aqi", "N/A", "Chưa kết nối", "#94A3B8")
+        bindStaticSensor("Fire", "N/A", "Chưa kết nối", "#94A3B8")
+
         lifecycleScope.launch {
             authViewModel.uiState.collect { state ->
-                btnLogout.isEnabled = !state.isLoading
-
+                btnLogout?.isEnabled = !state.isLoading
+                
                 if (state.isLoading) {
-                    txtStatus.text = "Đang kiểm tra phiên đăng nhập..."
+                    txtStatus?.text = "Đang kiểm tra phiên đăng nhập..."
                     setUserContentVisible(false)
                     return@collect
                 }
-
+                
                 state.errorMessage?.let { message ->
-                    txtStatus.text = message
+                    txtStatus?.text = message
                     setUserContentVisible(false)
 
                     if (message != lastErrorMessage) {
@@ -71,10 +104,15 @@ class HomeActivity : AppCompatActivity() {
 
                 val user = state.currentUser
                 if (user != null) {
-                    txtStatus.text = "Đăng nhập thành công"
-                    txtName.text = user.fullName
-                    txtEmail.text = user.email
-                    txtRole.text = user.role
+                    txtStatus?.text = "Đăng nhập thành công"
+                    txtName?.text = "Nhà của ${user.fullName} ∨"
+                    txtEmail?.text = user.email
+                    txtRole?.text = user.role
+                    
+                    // Cập nhật câu chào động nếu có TextView txtGreeting trong layout
+                    val txtGreeting = findViewByName<TextView>("txtGreeting")
+                    txtGreeting?.text = "Chào ${user.fullName.split(" ").lastOrNull() ?: ""} 👋"
+                    
                     setUserContentVisible(true)
                 }
             }
@@ -91,9 +129,9 @@ class HomeActivity : AppCompatActivity() {
 
     private fun setUserContentVisible(isVisible: Boolean) {
         val visibility = if (isVisible) View.VISIBLE else View.GONE
-        txtName.visibility = visibility
-        txtEmail.visibility = visibility
-        txtRole.visibility = visibility
+        txtName?.visibility = visibility
+        txtEmail?.visibility = visibility
+        txtRole?.visibility = visibility
     }
 
     private fun openLogin() {
@@ -103,5 +141,10 @@ class HomeActivity : AppCompatActivity() {
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
+    }
+
+    private fun <T : View> findViewByName(name: String): T? {
+        val id = resources.getIdentifier(name, "id", packageName)
+        return if (id != 0) findViewById(id) else null
     }
 }
