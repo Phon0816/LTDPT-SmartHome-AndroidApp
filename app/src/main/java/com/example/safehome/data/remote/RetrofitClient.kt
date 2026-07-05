@@ -10,6 +10,18 @@ object RetrofitClient {
     private const val BASE_URL = "https://smarthome-backend-lvin.onrender.com/"
 
     fun createAuthApi(tokenManager: TokenManager): AuthApi {
+        return createRetrofit(tokenManager).create(AuthApi::class.java)
+    }
+
+    fun createNotificationApi(tokenManager: TokenManager): NotificationApi {
+        return createRetrofit(tokenManager).create(NotificationApi::class.java)
+    }
+
+    fun createFcmApi(tokenManager: TokenManager): FcmApi {
+        return createRetrofit(tokenManager).create(FcmApi::class.java)
+    }
+
+    private fun createRetrofit(tokenManager: TokenManager): Retrofit {
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(AuthInterceptor(tokenManager))
             .build()
@@ -19,6 +31,5 @@ object RetrofitClient {
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(AuthApi::class.java)
     }
 }
