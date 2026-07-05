@@ -6,21 +6,39 @@ import com.example.safehome.data.remote.FcmUnregisterRequest
 import com.example.safehome.data.remote.NotificationApi
 import com.example.safehome.data.remote.NotificationDto
 
+data class NotificationListResult(
+    val success: Boolean,
+    val notifications: List<NotificationDto>
+)
+
 class NotificationRepository(
     private val notificationApi: NotificationApi,
     private val fcmApi: FcmApi
 ) {
 
     suspend fun getNotifications(): List<NotificationDto> {
+        return getNotificationsResult().notifications
+    }
+
+    suspend fun getNotificationsResult(): NotificationListResult {
         return try {
             val response = notificationApi.getNotifications()
             if (response.isSuccessful) {
-                response.body()?.data.orEmpty()
+                NotificationListResult(
+                    success = true,
+                    notifications = response.body()?.data.orEmpty()
+                )
             } else {
-                emptyList()
+                NotificationListResult(
+                    success = false,
+                    notifications = emptyList()
+                )
             }
         } catch (e: Exception) {
-            emptyList()
+            NotificationListResult(
+                success = false,
+                notifications = emptyList()
+            )
         }
     }
 

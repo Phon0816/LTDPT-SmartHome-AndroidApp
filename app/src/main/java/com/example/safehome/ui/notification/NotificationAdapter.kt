@@ -9,8 +9,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.safehome.R
 
 class NotificationAdapter(
-    private val notifications: List<NotificationItem>
+    private val onNotificationClick: (NotificationItem) -> Unit
 ) : RecyclerView.Adapter<NotificationAdapter.NotificationViewHolder>() {
+
+    private val notifications = mutableListOf<NotificationItem>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NotificationViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -19,10 +21,16 @@ class NotificationAdapter(
     }
 
     override fun onBindViewHolder(holder: NotificationViewHolder, position: Int) {
-        holder.bind(notifications[position])
+        holder.bind(notifications[position], onNotificationClick)
     }
 
     override fun getItemCount(): Int = notifications.size
+
+    fun submitNotifications(items: List<NotificationItem>) {
+        notifications.clear()
+        notifications.addAll(items)
+        notifyDataSetChanged()
+    }
 
     class NotificationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val iconType: ImageView = itemView.findViewById(R.id.imgNotificationType)
@@ -32,11 +40,14 @@ class NotificationAdapter(
         private val txtMessage: TextView = itemView.findViewById(R.id.txtNotificationMessage)
         private val txtCreatedAt: TextView = itemView.findViewById(R.id.txtNotificationCreatedAt)
 
-        fun bind(item: NotificationItem) {
+        fun bind(item: NotificationItem, onNotificationClick: (NotificationItem) -> Unit) {
             txtTitle.text = item.title
-            txtMessage.text = item.message
+            txtMessage.text = item.body
             txtCreatedAt.text = item.createdAt
             unreadDot.visibility = if (item.isRead) View.INVISIBLE else View.VISIBLE
+            itemView.setOnClickListener {
+                onNotificationClick(item)
+            }
 
             when (item.type) {
                 NotificationType.INFO -> {
@@ -68,9 +79,9 @@ class NotificationAdapter(
 }
 
 data class NotificationItem(
-    val id: Long,
+    val id: Long?,
     val title: String,
-    val message: String,
+    val body: String,
     val type: NotificationType,
     val isRead: Boolean,
     val createdAt: String
@@ -79,5 +90,15 @@ data class NotificationItem(
 enum class NotificationType {
     INFO,
     WARNING,
-    DANGER
+    DANGER;
+
+    companion object {
+        fun from(value: String?): NotificationType {
+            return when (value?.uppercase()) {
+                "WARNING" -> WARNING
+                "DANGER" -> DANGER
+                else -> INFO
+            }
+        }
+    }
 }
