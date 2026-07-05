@@ -21,4 +21,17 @@ object RetrofitClient {
             .build()
             .create(AuthApi::class.java)
     }
+
+    fun createDeviceApi(tokenManager: TokenManager): DeviceApi {
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(AuthInterceptor(tokenManager))
+            .build()
+
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(DeviceApi::class.java)
+    }
 }

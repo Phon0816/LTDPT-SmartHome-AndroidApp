@@ -16,14 +16,14 @@ import com.example.safehome.ui.auth.AuthViewModel
 import com.example.safehome.ui.auth.AuthViewModelFactory
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.safehome.data.SensorItem
-import com.example.safehome.ui.HomeAdapter
+import com.example.safehome.ui.home.HomeViewModel
+import com.example.safehome.ui.home.HomeViewModelFactory
+import com.example.safehome.data.repository.DeviceRepository
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var authViewModel: AuthViewModel
+    private lateinit var homeViewModel: HomeViewModel
     private var txtStatus: TextView? = null
     private var txtName: TextView? = null
     private var txtEmail: TextView? = null
@@ -31,12 +31,14 @@ class HomeActivity : AppCompatActivity() {
     private var btnLogout: MaterialButton? = null
     private var openedLogin = false
     private var lastErrorMessage: String? = null
+    private var hasLoadedDevices = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
         authViewModel = createAuthViewModel()
+        homeViewModel = createHomeViewModel()
 
         txtStatus = findViewByName("txtStatus")
         txtName = findViewByName("txtName")
@@ -114,6 +116,59 @@ class HomeActivity : AppCompatActivity() {
                     txtGreeting?.text = "Chào ${user.fullName.split(" ").lastOrNull() ?: ""} 👋"
                     
                     setUserContentVisible(true)
+
+                    if (!hasLoadedDevices) {
+                        hasLoadedDevices = true
+                        homeViewModel.loadDevices()
+                    }
+                }
+            }
+        }
+
+        // Theo dõi dữ liệu cảm biến từ HomeViewModel để cập nhật giao diện
+        lifecycleScope.launch {
+            homeViewModel.uiState.collect { state ->
+                val latest = state.latestReading
+                if (latest != null) {
+                    // Cập nhật Nhiệt độ
+                    val temp = latest.sensor.temperature
+                    val tempStatus = latest.status.temperature
+                    val tempColor = if (tempStatus == "SAFE") "#22C55E" else "#EF4444"
+                    val tempStatusText = if (tempStatus == "SAFE") "Bình thường" else "Nóng"
+                    bindStaticSensor("Temp", "$temp°C", tempStatusText, tempColor)
+
+                    // Cập nhật Độ ẩm
+                    val humid = latest.sensor.humidity
+                    val humidStatus = latest.status.humidity
+                    val humidColor = if (humidStatus == "SAFE") "#22C55E" else "#EF4444"
+                    val humidStatusText = if (humidStatus == "SAFE") "Bình thường" else "Kém"
+                    bindStaticSensor("Humid", "$humid%", humidStatusText, humidColor)
+
+                    // Cập nhật Khí gas (MQ-2 quy đổi ADC sang PPM)
+                    val rawMq2 = latest.sensor.mq2Raw
+                    val mq2Ppm = if (rawMq2 > 400) {
+                        ((rawMq2 - 400).toDouble() / (4095 - 400) * 1000).toInt().coerceAtLeast(0)
+                    } else 0
+                    val mq2Status = latest.status.mq2
+                    val mq2Color = if (mq2Status == "SAFE") "#22C55E" else "#EF4444"
+                    val mq2StatusText = if (mq2Status == "SAFE") "Bình thường" else "Rò rỉ khói/gas!"
+                    bindStaticSensor("Gas", "$mq2Ppm ppm", mq2StatusText, mq2Color)
+
+                    // Cập nhật Chất lượng không khí (MQ-135 quy đổi ADC sang AQI)
+                    val rawMq135 = latest.sensor.mq135Raw
+                    val mq135Aqi = if (rawMq135 > 400) {
+                        ((rawMq135 - 400).toDouble() / (4095 - 400) * 500).toInt().coerceAtLeast(0)
+                    } else 0
+                    val mq135Status = latest.status.mq135
+                    val mq135Color = if (mq135Status == "SAFE") "#22C55E" else "#EF4444"
+                    val mq135StatusText = if (mq135Status == "SAFE") "Tốt" else "Ô nhiễm!"
+                    bindStaticSensor("Aqi", "$mq135Aqi AQI", mq135StatusText, mq135Color)
+
+                    // Cập nhật Phát hiện lửa
+                    val flame = latest.sensor.flameDetected
+                    val flameColor = if (flame) "#EF4444" else "#22C55E"
+                    val flameStatusText = if (flame) "Nguy hiểm!" else "Bình thường"
+                    bindStaticSensor("Fire", if (flame) "Có lửa!" else "Không", flameStatusText, flameColor)
                 }
             }
         }
@@ -146,5 +201,13 @@ class HomeActivity : AppCompatActivity() {
     private fun <T : View> findViewByName(name: String): T? {
         val id = resources.getIdentifier(name, "id", packageName)
         return if (id != 0) findViewById(id) else null
+    }
+
+    private fun createHomeViewModel(): HomeViewModel {
+        val tokenManager = TokenManager(applicationContext)
+        val deviceApi = RetrofitClient.createDeviceApi(tokenManager)
+        val deviceRepository = DeviceRepository(deviceApi)
+        val factory = HomeViewModelFactory(deviceRepository)
+        return ViewModelProvider(this, factory)[HomeViewModel::class.java]
     }
 }
