@@ -64,6 +64,21 @@
                     android:text="Cập nhật an toàn từ SafeHome"
                     android:textColor="@color/safehome_text_muted"
                     android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/txtUnreadCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_notification_badge_info"
+                    android:paddingStart="10dp"
+                    android:paddingTop="5dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="5dp"
+                    android:text="Đã đọc hết"
+                    android:textColor="@color/safehome_blue_deep"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <FrameLayout

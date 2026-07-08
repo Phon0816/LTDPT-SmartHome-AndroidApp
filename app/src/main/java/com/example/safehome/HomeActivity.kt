@@ -1,16 +1,20 @@
 package com.example.safehome
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.safehome.data.local.TokenManager
 import com.example.safehome.data.remote.RetrofitClient
 import com.example.safehome.data.repository.AuthRepository
+import com.example.safehome.firebase.FcmTokenManager
 import com.example.safehome.ui.auth.AuthViewModel
 import com.example.safehome.ui.auth.AuthViewModelFactory
 import com.example.safehome.ui.notification.NotificationActivity
@@ -20,6 +24,7 @@ import kotlinx.coroutines.launch
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var authViewModel: AuthViewModel
+    private lateinit var fcmTokenManager: FcmTokenManager
     private lateinit var txtStatus: TextView
     private lateinit var txtName: TextView
     private lateinit var txtEmail: TextView
@@ -28,12 +33,26 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var btnLogout: MaterialButton
     private var openedLogin = false
     private var lastErrorMessage: String? = null
+    private var requestedFcmSync = false
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            Toast.makeText(
+                this,
+                "Bạn có thể bật thông báo trong cài đặt ứng dụng",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
         authViewModel = createAuthViewModel()
+        fcmTokenManager = FcmTokenManager(applicationContext)
 
         txtStatus = findViewById(R.id.txtStatus)
         txtName = findViewById(R.id.txtName)
@@ -84,6 +103,7 @@ class HomeActivity : AppCompatActivity() {
                     txtEmail.text = user.email
                     txtRole.text = user.role
                     setUserContentVisible(true)
+                    syncFcmTokenAfterLogin()
                 }
             }
         }
@@ -102,6 +122,23 @@ class HomeActivity : AppCompatActivity() {
         txtName.visibility = visibility
         txtEmail.visibility = visibility
         txtRole.visibility = visibility
+    }
+
+    private fun syncFcmTokenAfterLogin() {
+        if (requestedFcmSync) return
+        requestedFcmSync = true
+
+        requestNotificationPermissionIfNeeded()
+
+        lifecycleScope.launch {
+            fcmTokenManager.syncTokenIfLoggedIn()
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     private fun openLogin() {

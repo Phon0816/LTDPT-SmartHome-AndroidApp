@@ -13,6 +13,7 @@ data class NotificationUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val notifications: List<NotificationItem> = emptyList(),
+    val unreadCount: Int = 0,
     val errorMessage: String? = null,
     val actionMessage: String? = null
 ) {
@@ -20,7 +21,7 @@ data class NotificationUiState(
         get() = !isLoading && notifications.isEmpty() && errorMessage == null
 
     val hasUnread: Boolean
-        get() = notifications.any { !it.isRead }
+        get() = unreadCount > 0 || notifications.any { !it.isRead }
 }
 
 class NotificationViewModel(
@@ -44,12 +45,14 @@ class NotificationViewModel(
             )
 
             val result = notificationRepository.getNotificationsResult()
+            val unreadCount = notificationRepository.getUnreadCount()
             val notifications = result.notifications.map { it.toNotificationItem() }
 
             _uiState.value = NotificationUiState(
                 isLoading = false,
                 isRefreshing = false,
                 notifications = notifications,
+                unreadCount = unreadCount,
                 errorMessage = if (!result.success && notifications.isEmpty()) {
                     "Không thể tải thông báo"
                 } else {
@@ -66,9 +69,18 @@ class NotificationViewModel(
         viewModelScope.launch {
             val success = notificationRepository.markAsRead(notificationId)
             if (success) {
+                val wasUnread = _uiState.value.notifications
+                    .firstOrNull { it.id == notificationId }
+                    ?.isRead == false
+
                 _uiState.value = _uiState.value.copy(
                     notifications = _uiState.value.notifications.map { current ->
                         if (current.id == notificationId) current.copy(isRead = true) else current
+                    },
+                    unreadCount = if (wasUnread) {
+                        (_uiState.value.unreadCount - 1).coerceAtLeast(0)
+                    } else {
+                        _uiState.value.unreadCount
                     },
                     actionMessage = null
                 )
@@ -88,6 +100,7 @@ class NotificationViewModel(
             if (success) {
                 _uiState.value = _uiState.value.copy(
                     notifications = _uiState.value.notifications.map { it.copy(isRead = true) },
+                    unreadCount = 0,
                     actionMessage = null
                 )
             } else {

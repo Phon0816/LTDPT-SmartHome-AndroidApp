@@ -30,6 +30,7 @@ class NotificationActivity : AppCompatActivity() {
     private lateinit var layoutEmptyState: LinearLayout
     private lateinit var layoutErrorState: LinearLayout
     private lateinit var txtErrorMessage: TextView
+    private lateinit var txtUnreadCount: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +48,7 @@ class NotificationActivity : AppCompatActivity() {
         layoutEmptyState = findViewById(R.id.layoutEmptyState)
         layoutErrorState = findViewById(R.id.layoutErrorState)
         txtErrorMessage = findViewById(R.id.txtErrorMessage)
+        txtUnreadCount = findViewById(R.id.txtUnreadCount)
 
         notificationAdapter = NotificationAdapter { item ->
             notificationViewModel.markAsRead(item)
@@ -90,6 +92,11 @@ class NotificationActivity : AppCompatActivity() {
         layoutEmptyState.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
         layoutErrorState.visibility = if (state.errorMessage != null) View.VISIBLE else View.GONE
         txtErrorMessage.text = state.errorMessage ?: "Không thể tải thông báo"
+        txtUnreadCount.text = if (state.unreadCount > 0) {
+            "${state.unreadCount} chưa đọc"
+        } else {
+            "Đã đọc hết"
+        }
 
         btnMarkAllRead.isEnabled = state.hasUnread && !state.isLoading && !state.isRefreshing
         btnMarkAllRead.alpha = if (btnMarkAllRead.isEnabled) 1f else 0.45f
