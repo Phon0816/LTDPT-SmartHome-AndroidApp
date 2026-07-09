@@ -75,7 +75,16 @@ class HomeActivity : AppCompatActivity() {
         }
 
         btnLogout?.setOnClickListener {
-            authViewModel.logout()
+            btnLogout?.isEnabled = false
+            lifecycleScope.launch {
+                try {
+                    fcmTokenManager.unregisterCurrentToken()
+                } catch (e: Exception) {
+                    Log.e("HomeActivity", "Error unregistering FCM token on logout", e)
+                } finally {
+                    authViewModel.logout()
+                }
+            }
         }
 
         // Xử lý ẩn hiện chấm thông báo xanh khi click (tìm động bằng tên ID tránh crash khi chưa kéo thả)
@@ -83,7 +92,8 @@ class HomeActivity : AppCompatActivity() {
         val bellContainer = findViewByName<View>("bellContainer")
         bellContainer?.setOnClickListener {
             notificationBadge?.visibility = View.GONE
-            Toast.makeText(this, "Đã đọc tất cả thông báo", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, NotificationActivity::class.java)
+            startActivity(intent)
         }
 
         // Gán dữ liệu cho 5 ô cảm biến tĩnh (tìm động bằng ID tránh crash khi người dùng đang kéo thả thiết kế)
@@ -305,134 +315,20 @@ class HomeActivity : AppCompatActivity() {
         val layoutTabDevices = findViewById<View>(R.id.layoutTabDevices)
         val layoutTabAlerts = findViewById<View>(R.id.layoutTabAlerts)
         val layoutTabSettings = findViewById<View>(R.id.layoutTabSettings)
-
-        val viewHomeActiveBg = findViewById<View>(R.id.viewHomeActiveBg)
-        val viewMonitorActiveBg = findViewById<View>(R.id.viewMonitorActiveBg)
-        val viewDevicesActiveBg = findViewById<View>(R.id.viewDevicesActiveBg)
-        val viewAlertsActiveBg = findViewById<View>(R.id.viewAlertsActiveBg)
-        val viewSettingsActiveBg = findViewById<View>(R.id.viewSettingsActiveBg)
-
-        val imgTabHome = findViewById<android.widget.ImageView>(R.id.imgTabHome)
-        val imgTabMonitor = findViewById<android.widget.ImageView>(R.id.imgTabMonitor)
-        val imgTabDevices = findViewById<android.widget.ImageView>(R.id.imgTabDevices)
-        val imgTabAlerts = findViewById<android.widget.ImageView>(R.id.imgTabAlerts)
-        val imgTabSettings = findViewById<android.widget.ImageView>(R.id.imgTabSettings)
-
-        val txtTabHome = findViewById<TextView>(R.id.txtTabHome)
-        val txtTabMonitor = findViewById<TextView>(R.id.txtTabMonitor)
-        val txtTabDevices = findViewById<TextView>(R.id.txtTabDevices)
-        val txtTabAlerts = findViewById<TextView>(R.id.txtTabAlerts)
-        val txtTabSettings = findViewById<TextView>(R.id.txtTabSettings)
-
-        val homeScrollView = findViewById<View>(R.id.homeScrollView)
-        val layoutPlaceholderContent = findViewById<View>(R.id.layoutPlaceholderContent)
-        val imgPlaceholderIcon = findViewById<android.widget.ImageView>(R.id.imgPlaceholderIcon)
-        val txtPlaceholderTitle = findViewById<TextView>(R.id.txtPlaceholderTitle)
-        val txtPlaceholderDesc = findViewById<TextView>(R.id.txtPlaceholderDesc)
         val btnPlaceholderAction = findViewById<View>(R.id.btnPlaceholderAction)
 
-        val blueDeepColor = android.graphics.Color.parseColor("#2563EB")
-        val textMutedColor = android.graphics.Color.parseColor("#64748B")
+        val tabToSelect = intent.getIntExtra("SELECT_TAB", 0)
+        selectTab(tabToSelect)
 
-        val resetTabsUi = {
-            viewHomeActiveBg.visibility = View.INVISIBLE
-            viewMonitorActiveBg.visibility = View.INVISIBLE
-            viewDevicesActiveBg.visibility = View.INVISIBLE
-            viewAlertsActiveBg.visibility = View.INVISIBLE
-            viewSettingsActiveBg.visibility = View.INVISIBLE
-
-            imgTabHome.setColorFilter(textMutedColor)
-            imgTabMonitor.setColorFilter(textMutedColor)
-            imgTabDevices.setColorFilter(textMutedColor)
-            imgTabAlerts.setColorFilter(textMutedColor)
-            imgTabSettings.setColorFilter(textMutedColor)
-
-            txtTabHome.setTextColor(textMutedColor)
-            txtTabMonitor.setTextColor(textMutedColor)
-            txtTabDevices.setTextColor(textMutedColor)
-            txtTabAlerts.setTextColor(textMutedColor)
-            txtTabSettings.setTextColor(textMutedColor)
-
-            txtTabHome.setTypeface(null, android.graphics.Typeface.NORMAL)
-            txtTabMonitor.setTypeface(null, android.graphics.Typeface.NORMAL)
-            txtTabDevices.setTypeface(null, android.graphics.Typeface.NORMAL)
-            txtTabAlerts.setTypeface(null, android.graphics.Typeface.NORMAL)
-            txtTabSettings.setTypeface(null, android.graphics.Typeface.NORMAL)
+        layoutTabHome?.setOnClickListener { selectTab(0) }
+        layoutTabMonitor?.setOnClickListener { selectTab(1) }
+        layoutTabDevices?.setOnClickListener { selectTab(2) }
+        layoutTabAlerts?.setOnClickListener {
+            val intent = Intent(this, NotificationActivity::class.java)
+            startActivity(intent)
         }
-
-        val selectTab = { tabIndex: Int ->
-            resetTabsUi()
-            when (tabIndex) {
-                0 -> {
-                    viewHomeActiveBg.visibility = View.VISIBLE
-                    imgTabHome.setColorFilter(blueDeepColor)
-                    txtTabHome.setTextColor(blueDeepColor)
-                    txtTabHome.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                    homeScrollView.visibility = View.VISIBLE
-                    layoutPlaceholderContent.visibility = View.GONE
-                }
-                1 -> {
-                    viewMonitorActiveBg.visibility = View.VISIBLE
-                    imgTabMonitor.setColorFilter(blueDeepColor)
-                    txtTabMonitor.setTextColor(blueDeepColor)
-                    txtTabMonitor.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                    homeScrollView.visibility = View.GONE
-                    layoutPlaceholderContent.visibility = View.VISIBLE
-
-                    imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_monitor)
-                    txtPlaceholderTitle.text = "Giám Sát Hệ Thống"
-                    txtPlaceholderDesc.text = "Biểu đồ trực quan và thống kê dữ liệu cảm biến của bạn sẽ được hiển thị tại đây."
-                }
-                2 -> {
-                    viewDevicesActiveBg.visibility = View.VISIBLE
-                    imgTabDevices.setColorFilter(blueDeepColor)
-                    txtTabDevices.setTextColor(blueDeepColor)
-                    txtTabDevices.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                    homeScrollView.visibility = View.GONE
-                    layoutPlaceholderContent.visibility = View.VISIBLE
-
-                    imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_devices)
-                    txtPlaceholderTitle.text = "Quản Lý Thiết Bị"
-                    txtPlaceholderDesc.text = "Danh sách và cấu hình chi tiết các thiết bị phần cứng IoT đã liên kết trong nhà bạn."
-                }
-                3 -> {
-                    viewAlertsActiveBg.visibility = View.VISIBLE
-                    imgTabAlerts.setColorFilter(blueDeepColor)
-                    txtTabAlerts.setTextColor(blueDeepColor)
-                    txtTabAlerts.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                    homeScrollView.visibility = View.GONE
-                    layoutPlaceholderContent.visibility = View.VISIBLE
-
-                    imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_alerts)
-                    txtPlaceholderTitle.text = "Hộp Thư Cảnh Báo"
-                    txtPlaceholderDesc.text = "Lịch sử và nhật ký các thông báo khẩn cấp khi phát hiện rò rỉ khí gas, khói hoặc lửa."
-                }
-                4 -> {
-                    viewSettingsActiveBg.visibility = View.VISIBLE
-                    imgTabSettings.setColorFilter(blueDeepColor)
-                    txtTabSettings.setTextColor(blueDeepColor)
-                    txtTabSettings.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                    homeScrollView.visibility = View.GONE
-                    layoutPlaceholderContent.visibility = View.VISIBLE
-
-                    imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_settings)
-                    txtPlaceholderTitle.text = "Cài Đặt Hệ Thống"
-                    txtPlaceholderDesc.text = "Tùy chỉnh thông tin cá nhân, cấu hình ngưỡng cảnh báo khẩn cấp và thiết lập tài khoản."
-                }
-            }
-        }
-
-        layoutTabHome.setOnClickListener { selectTab(0) }
-        layoutTabMonitor.setOnClickListener { selectTab(1) }
-        layoutTabDevices.setOnClickListener { selectTab(2) }
-        layoutTabAlerts.setOnClickListener { selectTab(3) }
-        layoutTabSettings.setOnClickListener { selectTab(4) }
-        btnPlaceholderAction.setOnClickListener { selectTab(0) }
+        layoutTabSettings?.setOnClickListener { selectTab(4) }
+        btnPlaceholderAction?.setOnClickListener { selectTab(0) }
     }
 
     private fun createAuthViewModel(): AuthViewModel {
@@ -495,9 +391,136 @@ class HomeActivity : AppCompatActivity() {
             val createdInstant = java.time.Instant.parse(createdAt)
             val now = java.time.Instant.now()
             val diffSeconds = java.time.Duration.between(createdInstant, now).seconds
-            java.lang.Math.abs(diffSeconds) > 20
+            java.lang.Math.abs(diffSeconds) > 30
         } catch (e: Exception) {
             false
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val tabToSelect = intent.getIntExtra("SELECT_TAB", -1)
+        if (tabToSelect != -1) {
+            selectTab(tabToSelect)
+        }
+    }
+
+    private fun selectTab(tabIndex: Int) {
+        val viewHomeActiveBg = findViewById<View>(R.id.viewHomeActiveBg) ?: return
+        val viewMonitorActiveBg = findViewById<View>(R.id.viewMonitorActiveBg) ?: return
+        val viewDevicesActiveBg = findViewById<View>(R.id.viewDevicesActiveBg) ?: return
+        val viewAlertsActiveBg = findViewById<View>(R.id.viewAlertsActiveBg) ?: return
+        val viewSettingsActiveBg = findViewById<View>(R.id.viewSettingsActiveBg) ?: return
+
+        val imgTabHome = findViewById<android.widget.ImageView>(R.id.imgTabHome) ?: return
+        val imgTabMonitor = findViewById<android.widget.ImageView>(R.id.imgTabMonitor) ?: return
+        val imgTabDevices = findViewById<android.widget.ImageView>(R.id.imgTabDevices) ?: return
+        val imgTabAlerts = findViewById<android.widget.ImageView>(R.id.imgTabAlerts) ?: return
+        val imgTabSettings = findViewById<android.widget.ImageView>(R.id.imgTabSettings) ?: return
+
+        val txtTabHome = findViewById<TextView>(R.id.txtTabHome) ?: return
+        val txtTabMonitor = findViewById<TextView>(R.id.txtTabMonitor) ?: return
+        val txtTabDevices = findViewById<TextView>(R.id.txtTabDevices) ?: return
+        val txtTabAlerts = findViewById<TextView>(R.id.txtTabAlerts) ?: return
+        val txtTabSettings = findViewById<TextView>(R.id.txtTabSettings) ?: return
+
+        val homeScrollView = findViewById<View>(R.id.homeScrollView) ?: return
+        val layoutPlaceholderContent = findViewById<View>(R.id.layoutPlaceholderContent) ?: return
+        val imgPlaceholderIcon = findViewById<android.widget.ImageView>(R.id.imgPlaceholderIcon) ?: return
+        val txtPlaceholderTitle = findViewById<TextView>(R.id.txtPlaceholderTitle) ?: return
+        val txtPlaceholderDesc = findViewById<TextView>(R.id.txtPlaceholderDesc) ?: return
+
+        val blueDeepColor = android.graphics.Color.parseColor("#2563EB")
+        val textMutedColor = android.graphics.Color.parseColor("#64748B")
+
+        // Reset
+        viewHomeActiveBg.visibility = View.INVISIBLE
+        viewMonitorActiveBg.visibility = View.INVISIBLE
+        viewDevicesActiveBg.visibility = View.INVISIBLE
+        viewAlertsActiveBg.visibility = View.INVISIBLE
+        viewSettingsActiveBg.visibility = View.INVISIBLE
+
+        imgTabHome.setColorFilter(textMutedColor)
+        imgTabMonitor.setColorFilter(textMutedColor)
+        imgTabDevices.setColorFilter(textMutedColor)
+        imgTabAlerts.setColorFilter(textMutedColor)
+        imgTabSettings.setColorFilter(textMutedColor)
+
+        txtTabHome.setTextColor(textMutedColor)
+        txtTabMonitor.setTextColor(textMutedColor)
+        txtTabDevices.setTextColor(textMutedColor)
+        txtTabAlerts.setTextColor(textMutedColor)
+        txtTabSettings.setTextColor(textMutedColor)
+
+        txtTabHome.setTypeface(null, android.graphics.Typeface.NORMAL)
+        txtTabMonitor.setTypeface(null, android.graphics.Typeface.NORMAL)
+        txtTabDevices.setTypeface(null, android.graphics.Typeface.NORMAL)
+        txtTabAlerts.setTypeface(null, android.graphics.Typeface.NORMAL)
+        txtTabSettings.setTypeface(null, android.graphics.Typeface.NORMAL)
+
+        when (tabIndex) {
+            0 -> {
+                viewHomeActiveBg.visibility = View.VISIBLE
+                imgTabHome.setColorFilter(blueDeepColor)
+                txtTabHome.setTextColor(blueDeepColor)
+                txtTabHome.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                homeScrollView.visibility = View.VISIBLE
+                layoutPlaceholderContent.visibility = View.GONE
+            }
+            1 -> {
+                viewMonitorActiveBg.visibility = View.VISIBLE
+                imgTabMonitor.setColorFilter(blueDeepColor)
+                txtTabMonitor.setTextColor(blueDeepColor)
+                txtTabMonitor.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                homeScrollView.visibility = View.GONE
+                layoutPlaceholderContent.visibility = View.VISIBLE
+
+                imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_monitor)
+                txtPlaceholderTitle.text = "Giám Sát Hệ Thống"
+                txtPlaceholderDesc.text = "Biểu đồ trực quan và thống kê dữ liệu cảm biến của bạn sẽ được hiển thị tại đây."
+            }
+            2 -> {
+                viewDevicesActiveBg.visibility = View.VISIBLE
+                imgTabDevices.setColorFilter(blueDeepColor)
+                txtTabDevices.setTextColor(blueDeepColor)
+                txtTabDevices.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                homeScrollView.visibility = View.GONE
+                layoutPlaceholderContent.visibility = View.VISIBLE
+
+                imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_devices)
+                txtPlaceholderTitle.text = "Quản Lý Thiết Bị"
+                txtPlaceholderDesc.text = "Danh sách và cấu hình chi tiết các thiết bị phần cứng IoT đã liên kết trong nhà bạn."
+            }
+            3 -> {
+                viewAlertsActiveBg.visibility = View.VISIBLE
+                imgTabAlerts.setColorFilter(blueDeepColor)
+                txtTabAlerts.setTextColor(blueDeepColor)
+                txtTabAlerts.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                homeScrollView.visibility = View.GONE
+                layoutPlaceholderContent.visibility = View.VISIBLE
+
+                imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_alerts)
+                txtPlaceholderTitle.text = "Hộp Thư Cảnh Báo"
+                txtPlaceholderDesc.text = "Lịch sử và nhật ký các thông báo khẩn cấp khi phát hiện rò rỉ khí gas, khói hoặc lửa."
+            }
+            4 -> {
+                viewSettingsActiveBg.visibility = View.VISIBLE
+                imgTabSettings.setColorFilter(blueDeepColor)
+                txtTabSettings.setTextColor(blueDeepColor)
+                txtTabSettings.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                homeScrollView.visibility = View.GONE
+                layoutPlaceholderContent.visibility = View.VISIBLE
+
+                imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_settings)
+                txtPlaceholderTitle.text = "Cài Đặt Hệ Thống"
+                txtPlaceholderDesc.text = "Tùy chỉnh thông tin cá nhân, cấu hình ngưỡng cảnh báo khẩn cấp và thiết lập tài khoản."
+            }
         }
     }
 }

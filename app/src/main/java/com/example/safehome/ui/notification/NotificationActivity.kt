@@ -1,5 +1,6 @@
 package com.example.safehome.ui.notification
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.animation.AnimationUtils
@@ -18,6 +19,7 @@ import com.example.safehome.data.local.TokenManager
 import com.example.safehome.data.remote.RetrofitClient
 import com.example.safehome.data.repository.NotificationRepository
 import com.google.android.material.button.MaterialButton
+import com.example.safehome.HomeActivity
 import kotlinx.coroutines.launch
 
 class NotificationActivity : AppCompatActivity() {
@@ -74,6 +76,12 @@ class NotificationActivity : AppCompatActivity() {
                 renderState(state)
             }
         }
+
+        // --- SETUP FOOTER BOTTOM NAVIGATION ---
+        findViewById<View>(R.id.layoutTabHome).setOnClickListener { navigateToHome(0) }
+        findViewById<View>(R.id.layoutTabMonitor).setOnClickListener { navigateToHome(1) }
+        findViewById<View>(R.id.layoutTabDevices).setOnClickListener { navigateToHome(2) }
+        findViewById<View>(R.id.layoutTabSettings).setOnClickListener { navigateToHome(4) }
     }
 
     private fun createNotificationViewModel(): NotificationViewModel {
@@ -108,5 +116,13 @@ class NotificationActivity : AppCompatActivity() {
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             notificationViewModel.clearActionMessage()
         }
+    }
+
+    private fun navigateToHome(tabIndex: Int) {
+        val intent = Intent(this, HomeActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        intent.putExtra("SELECT_TAB", tabIndex)
+        startActivity(intent)
+        finish()
     }
 }

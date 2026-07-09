@@ -61,6 +61,15 @@ class FcmTokenManager(
         }
     }
 
+    suspend fun unregisterCurrentToken(): Boolean {
+        val token = getFirebaseTokenOrNull()
+        if (token.isNullOrBlank()) {
+            Log.w(TAG, "FCM token is empty, skip unregister")
+            return false
+        }
+        return unregisterToken(token)
+    }
+
     private suspend fun getFirebaseTokenOrNull(): String? {
         return withContext(Dispatchers.IO) {
             suspendCancellableCoroutine { continuation ->

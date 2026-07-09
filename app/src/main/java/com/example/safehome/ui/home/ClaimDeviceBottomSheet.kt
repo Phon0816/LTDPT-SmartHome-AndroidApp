@@ -39,6 +39,11 @@ class ClaimDeviceBottomSheet : BottomSheetDialogFragment() {
         val etCode = view.findViewById<TextInputEditText>(R.id.etDeviceCode)
         val etSecret = view.findViewById<TextInputEditText>(R.id.etDeviceSecret)
         val etName = view.findViewById<TextInputEditText>(R.id.etDeviceName)
+
+        // Pre-fill default values for easier local testing/claiming
+        etCode?.setText("DEV01")
+        etSecret?.setText("DEV01")
+        etName?.setText("Thiết bị trung tâm")
         val tilCode = view.findViewById<TextInputLayout>(R.id.tilDeviceCode)
         val tilSecret = view.findViewById<TextInputLayout>(R.id.tilDeviceSecret)
         val tilName = view.findViewById<TextInputLayout>(R.id.tilDeviceName)
