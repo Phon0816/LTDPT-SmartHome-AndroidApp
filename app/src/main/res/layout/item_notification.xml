@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="14dp"
+    app:cardBackgroundColor="#F2FFFFFF"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="5dp"
+    app:strokeColor="#E5E7EB"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="18dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="44dp"
+                android:layout_height="44dp">
+
+                <ImageView
+                    android:id="@+id/imgNotificationType"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:contentDescription="@null"
+                    android:padding="11dp"
+                    tools:background="@drawable/bg_notification_icon_danger"
+                    tools:src="@drawable/ic_notification_danger" />
+
+                <View
+                    android:id="@+id/viewUnreadDot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_gravity="top|end"
+                    android:background="@drawable/bg_notification_unread_dot"
+                    tools:visibility="visible" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/txtNotificationBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:gravity="center"
+                android:minHeight="28dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                tools:background="@drawable/bg_notification_badge_danger"
+                tools:text="NGUY HIỂM"
+                tools:textColor="@color/safehome_danger_text" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_notification_clock"
+                android:tint="@color/safehome_text_muted" />
+
+            <TextView
+                android:id="@+id/txtNotificationCreatedAt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:textColor="@color/safehome_text_muted"
+                android:textSize="12sp"
+                tools:text="Hôm nay, 10:05" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtNotificationTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/safehome_text_dark"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            tools:text="Cảnh báo khí gas" />
+
+        <TextView
+            android:id="@+id/txtNotificationMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:lineSpacingExtra="3dp"
+            android:textColor="@color/safehome_text_muted"
+            android:textSize="14sp"
+            tools:text="Nồng độ khí gas vượt ngưỡng an toàn tại khu vực bếp. Vui lòng kiểm tra ngay." />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -1,11 +1,14 @@
 package com.example.safehome
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -13,12 +16,14 @@ import com.example.safehome.R
 import com.example.safehome.data.local.TokenManager
 import com.example.safehome.data.remote.RetrofitClient
 import com.example.safehome.data.repository.AuthRepository
+import com.example.safehome.firebase.FcmTokenManager
 import com.example.safehome.ui.auth.AuthViewModel
 import com.example.safehome.ui.auth.AuthViewModelFactory
 import com.example.safehome.ui.home.ClaimDeviceBottomSheet
 import com.example.safehome.ui.home.HomeViewModel
 import com.example.safehome.ui.home.HomeViewModelFactory
 import com.example.safehome.data.repository.DeviceRepository
+import com.example.safehome.ui.notification.NotificationActivity
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 
@@ -26,14 +31,29 @@ class HomeActivity : AppCompatActivity() {
 
     private lateinit var authViewModel: AuthViewModel
     private lateinit var homeViewModel: HomeViewModel
+    private lateinit var fcmTokenManager: FcmTokenManager
     private var txtStatus: TextView? = null
     private var txtName: TextView? = null
     private var txtEmail: TextView? = null
     private var txtRole: TextView? = null
+    private var btnNotifications: MaterialButton? = null
     private var btnLogout: MaterialButton? = null
     private var openedLogin = false
     private var lastErrorMessage: String? = null
     private var hasLoadedDevices = false
+    private var requestedFcmSync = false
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            Toast.makeText(
+                this,
+                "Bạn có thể bật thông báo trong cài đặt ứng dụng",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,12 +61,18 @@ class HomeActivity : AppCompatActivity() {
 
         authViewModel = createAuthViewModel()
         homeViewModel = createHomeViewModel()
+        fcmTokenManager = FcmTokenManager(applicationContext)
 
         txtStatus = findViewByName("txtStatus")
         txtName = findViewByName("txtName")
         txtEmail = findViewByName("txtEmail")
         txtRole = findViewByName("txtRole")
+        btnNotifications = findViewByName("btnNotifications")
         btnLogout = findViewByName("btnLogout")
+
+        btnNotifications?.setOnClickListener {
+            startActivity(Intent(this, NotificationActivity::class.java))
+        }
 
         btnLogout?.setOnClickListener {
             authViewModel.logout()
@@ -85,6 +111,7 @@ class HomeActivity : AppCompatActivity() {
             authViewModel.uiState.collect { state ->
                 Log.d("HomeActivity", "🔐 auth state: isLoading=${state.isLoading} isLoggedIn=${state.isLoggedIn} user=${state.currentUser?.email} err=${state.errorMessage}")
                 btnLogout?.isEnabled = !state.isLoading
+                btnNotifications?.isEnabled = !state.isLoading
                 
                 if (state.isLoading) {
                     txtStatus?.text = "Đang kiểm tra phiên đăng nhập..."
@@ -121,6 +148,8 @@ class HomeActivity : AppCompatActivity() {
                     txtGreeting?.text = "Chào ${user.fullName.split(" ").lastOrNull() ?: ""} 👋"
                     
                     setUserContentVisible(true)
+
+                    syncFcmTokenAfterLogin()
 
                     if (!hasLoadedDevices) {
                         hasLoadedDevices = true
@@ -419,6 +448,23 @@ class HomeActivity : AppCompatActivity() {
         txtName?.visibility = visibility
         txtEmail?.visibility = visibility
         txtRole?.visibility = visibility
+    }
+
+    private fun syncFcmTokenAfterLogin() {
+        if (requestedFcmSync) return
+        requestedFcmSync = true
+
+        requestNotificationPermissionIfNeeded()
+
+        lifecycleScope.launch {
+            fcmTokenManager.syncTokenIfLoggedIn()
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     private fun openLogin() {

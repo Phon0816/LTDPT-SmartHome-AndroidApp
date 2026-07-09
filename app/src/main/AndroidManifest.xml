@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -18,8 +19,20 @@
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.SafeHome">
 
+        <service
+            android:name=".firebase.SafeHomeFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".RegisterActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.notification.NotificationActivity"
             android:exported="false" />
 
         <activity
