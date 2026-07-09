@@ -69,9 +69,9 @@ data class StatusDataDto(
 )
 
 data class ControlDataDto(
-    @SerializedName("buzzer_active")
+    @SerializedName(value = "buzzer_active", alternate = ["buzzerActive"])
     val buzzerActive: Boolean,
-    @SerializedName("buzzer_muted")
+    @SerializedName(value = "buzzer_muted", alternate = ["buzzerMuted"])
     val buzzerMuted: Boolean,
     val led1: Boolean,
     val led2: Boolean,
@@ -81,12 +81,12 @@ data class ControlDataDto(
 )
 
 data class DeviceMetadataDto(
-    @SerializedName("uptime_s")
+    @SerializedName(value = "uptime_s", alternate = ["uptimeS"])
     val uptimeS: Long?,
-    @SerializedName("last_seen")
+    @SerializedName(value = "last_seen", alternate = ["lastSeen"])
     val lastSeen: String?,
-    @SerializedName("created_at")
+    @SerializedName(value = "created_at", alternate = ["createdAt"])
     val createdAt: String?,
-    @SerializedName("updated_at")
+    @SerializedName(value = "updated_at", alternate = ["updatedAt"])
     val updatedAt: String?
 )
