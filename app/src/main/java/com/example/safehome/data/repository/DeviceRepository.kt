@@ -21,4 +21,8 @@ class DeviceRepository(
     suspend fun claimDevice(code: String, secret: String, name: String): Response<ClaimDeviceResponse> {
         return deviceApi.claimDevice(ClaimDeviceRequest(code, secret, name))
     }
+
+    suspend fun controlDevice(id: Int, payload: Map<String, Boolean>): Response<okhttp3.ResponseBody> {
+        return deviceApi.controlDevice(id, payload)
+    }
 }

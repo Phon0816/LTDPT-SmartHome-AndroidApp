@@ -1,18 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             xmlns:app="http://schemas.android.com/apk/res-auto"
             xmlns:tools="http://schemas.android.com/tools"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/safehome_background"
-            android:fillViewport="true"
-            tools:context=".HomeActivity" android:id="@+id/homeScrollView">
+            tools:context=".HomeActivity">
 
-    <LinearLayout
+    <ScrollView
+            android:id="@+id/homeScrollView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp">
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+        <LinearLayout
+                android:id="@+id/layoutHomeContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="96dp">
 
         <!-- Header Row (Greeting, Name, Notifications, Avatar) -->
         <RelativeLayout
@@ -259,352 +268,729 @@
                 android:paddingBottom="8dp">
                 
                 <!-- Ô 1: Nhiệt độ -->
-                <com.google.android.material.card.MaterialCardView
+                <LinearLayout
                     android:layout_width="120dp"
                     android:layout_height="175dp"
                     android:layout_margin="6dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="3dp"
-                    app:cardBackgroundColor="#FFFFFF"
-                    app:strokeColor="#F1F5F9"
-                    app:strokeWidth="1dp">
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:gravity="center_horizontal"
+                    android:background="@drawable/bg_placeholder_glass_card"
+                    android:elevation="6dp"
+                    android:outlineProvider="background">
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        app:cardCornerRadius="23dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#FEE2E2"
+                        app:strokeWidth="0dp"
+                        android:layout_marginBottom="8dp">
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            app:srcCompat="@drawable/ic_temp"/>
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nhiệt độ"
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:id="@+id/txtTempValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="N/A"
+                        android:textColor="#1E293B"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"/>
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:gravity="center_horizontal">
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="46dp"
-                            android:layout_height="46dp"
-                            app:cardCornerRadius="23dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#F8FAFC"
-                            app:strokeWidth="0dp"
-                            android:layout_marginBottom="8dp">
-                            <ImageView
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:layout_gravity="center"
-                                app:srcCompat="@drawable/ic_temp"/>
-                        </com.google.android.material.card.MaterialCardView>
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <View
+                            android:id="@+id/viewTempDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_badge_dot_grey"
+                            android:layout_marginEnd="4dp"/>
                         <TextView
+                            android:id="@+id/txtTempStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Nhiệt độ"
-                            android:textColor="#64748B"
-                            android:textSize="12sp"
-                            android:layout_marginBottom="4dp"/>
-                        <TextView
-                            android:id="@+id/txtTempValue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="N/A"
-                            android:textColor="#1E293B"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="12dp"/>
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-                            <View
-                                android:id="@+id/viewTempDot"
-                                android:layout_width="6dp"
-                                android:layout_height="6dp"
-                                android:background="@drawable/bg_badge_dot_grey"
-                                android:layout_marginEnd="4dp"/>
-                            <TextView
-                                android:id="@+id/txtTempStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Chưa kết nối"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp"
-                                android:textStyle="bold"/>
-                        </LinearLayout>
+                            android:text="Chưa kết nối"
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold"/>
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
 
                 <!-- Ô 2: Độ ẩm -->
-                <com.google.android.material.card.MaterialCardView
+                <LinearLayout
                     android:layout_width="120dp"
                     android:layout_height="175dp"
                     android:layout_margin="6dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="3dp"
-                    app:cardBackgroundColor="#FFFFFF"
-                    app:strokeColor="#F1F5F9"
-                    app:strokeWidth="1dp">
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:gravity="center_horizontal"
+                    android:background="@drawable/bg_placeholder_glass_card"
+                    android:elevation="6dp"
+                    android:outlineProvider="background">
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        app:cardCornerRadius="23dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#E0F2FE"
+                        app:strokeWidth="0dp"
+                        android:layout_marginBottom="8dp">
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            app:srcCompat="@drawable/ic_humidity"/>
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Độ ẩm"
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:id="@+id/txtHumidValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="N/A"
+                        android:textColor="#1E293B"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"/>
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:gravity="center_horizontal">
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="46dp"
-                            android:layout_height="46dp"
-                            app:cardCornerRadius="23dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#F8FAFC"
-                            app:strokeWidth="0dp"
-                            android:layout_marginBottom="8dp">
-                            <ImageView
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:layout_gravity="center"
-                                app:srcCompat="@drawable/ic_humidity"/>
-                        </com.google.android.material.card.MaterialCardView>
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <View
+                            android:id="@+id/viewHumidDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_badge_dot_grey"
+                            android:layout_marginEnd="4dp"/>
                         <TextView
+                            android:id="@+id/txtHumidStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Độ ẩm"
-                            android:textColor="#64748B"
-                            android:textSize="12sp"
-                            android:layout_marginBottom="4dp"/>
-                        <TextView
-                            android:id="@+id/txtHumidValue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="N/A"
-                            android:textColor="#1E293B"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="12dp"/>
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-                            <View
-                                android:id="@+id/viewHumidDot"
-                                android:layout_width="6dp"
-                                android:layout_height="6dp"
-                                android:background="@drawable/bg_badge_dot_grey"
-                                android:layout_marginEnd="4dp"/>
-                            <TextView
-                                android:id="@+id/txtHumidStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Chưa kết nối"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp"
-                                android:textStyle="bold"/>
-                        </LinearLayout>
+                            android:text="Chưa kết nối"
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold"/>
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
 
                 <!-- Ô 3: Khí gas -->
-                <com.google.android.material.card.MaterialCardView
+                <LinearLayout
                     android:layout_width="120dp"
                     android:layout_height="175dp"
                     android:layout_margin="6dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="3dp"
-                    app:cardBackgroundColor="#FFFFFF"
-                    app:strokeColor="#F1F5F9"
-                    app:strokeWidth="1dp">
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:gravity="center_horizontal"
+                    android:background="@drawable/bg_placeholder_glass_card"
+                    android:elevation="6dp"
+                    android:outlineProvider="background">
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        app:cardCornerRadius="23dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#FEF3C7"
+                        app:strokeWidth="0dp"
+                        android:layout_marginBottom="8dp">
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            app:srcCompat="@drawable/ic_gas"/>
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Khí gas"
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:id="@+id/txtGasValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="N/A"
+                        android:textColor="#1E293B"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"/>
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:gravity="center_horizontal">
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="46dp"
-                            android:layout_height="46dp"
-                            app:cardCornerRadius="23dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#F8FAFC"
-                            app:strokeWidth="0dp"
-                            android:layout_marginBottom="8dp">
-                            <ImageView
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:layout_gravity="center"
-                                app:srcCompat="@drawable/ic_gas"/>
-                        </com.google.android.material.card.MaterialCardView>
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <View
+                            android:id="@+id/viewGasDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_badge_dot_grey"
+                            android:layout_marginEnd="4dp"/>
                         <TextView
+                            android:id="@+id/txtGasStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Khí gas"
-                            android:textColor="#64748B"
-                            android:textSize="12sp"
-                            android:layout_marginBottom="4dp"/>
-                        <TextView
-                            android:id="@+id/txtGasValue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="N/A"
-                            android:textColor="#1E293B"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="12dp"/>
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-                            <View
-                                android:id="@+id/viewGasDot"
-                                android:layout_width="6dp"
-                                android:layout_height="6dp"
-                                android:background="@drawable/bg_badge_dot_grey"
-                                android:layout_marginEnd="4dp"/>
-                            <TextView
-                                android:id="@+id/txtGasStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Chưa kết nối"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp"
-                                android:textStyle="bold"/>
-                        </LinearLayout>
+                            android:text="Chưa kết nối"
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold"/>
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <!-- Ô 3b: Chất lượng không khí -->
+                <LinearLayout
+                    android:layout_width="120dp"
+                    android:layout_height="175dp"
+                    android:layout_margin="6dp"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:gravity="center_horizontal"
+                    android:background="@drawable/bg_placeholder_glass_card"
+                    android:elevation="6dp"
+                    android:outlineProvider="background">
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        app:cardCornerRadius="23dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#ECFDF5"
+                        app:strokeWidth="0dp"
+                        android:layout_marginBottom="8dp">
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            app:srcCompat="@drawable/ic_wind"/>
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Không khí"
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:id="@+id/txtAirValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="N/A"
+                        android:textColor="#1E293B"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"/>
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <View
+                            android:id="@+id/viewAirDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_badge_dot_grey"
+                            android:layout_marginEnd="4dp"/>
+                        <TextView
+                            android:id="@+id/txtAirStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Chưa kết nối"
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold"/>
+                    </LinearLayout>
+                </LinearLayout>
 
                 <!-- Ô 4: Còi báo (Buzzer) -->
-                <com.google.android.material.card.MaterialCardView
+                <LinearLayout
                     android:layout_width="120dp"
                     android:layout_height="175dp"
                     android:layout_margin="6dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="3dp"
-                    app:cardBackgroundColor="#FFFFFF"
-                    app:strokeColor="#F1F5F9"
-                    app:strokeWidth="1dp">
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:gravity="center_horizontal"
+                    android:background="@drawable/bg_placeholder_glass_card"
+                    android:elevation="6dp"
+                    android:outlineProvider="background">
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        app:cardCornerRadius="23dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#F5F3FF"
+                        app:strokeWidth="0dp"
+                        android:layout_marginBottom="8dp">
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            app:srcCompat="@drawable/ic_buzzer"/>
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Còi báo"
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:id="@+id/txtBuzzerValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="N/A"
+                        android:textColor="#1E293B"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"/>
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:gravity="center_horizontal">
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="46dp"
-                            android:layout_height="46dp"
-                            app:cardCornerRadius="23dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#F8FAFC"
-                            app:strokeWidth="0dp"
-                            android:layout_marginBottom="8dp">
-                            <ImageView
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:layout_gravity="center"
-                                app:srcCompat="@drawable/ic_buzzer"/>
-                        </com.google.android.material.card.MaterialCardView>
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <View
+                            android:id="@+id/viewBuzzerDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_badge_dot_grey"
+                            android:layout_marginEnd="4dp"/>
                         <TextView
+                            android:id="@+id/txtBuzzerStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Còi báo"
-                            android:textColor="#64748B"
-                            android:textSize="12sp"
-                            android:layout_marginBottom="4dp"/>
-                        <TextView
-                            android:id="@+id/txtBuzzerValue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="N/A"
-                            android:textColor="#1E293B"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="12dp"/>
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-                            <View
-                                android:id="@+id/viewBuzzerDot"
-                                android:layout_width="6dp"
-                                android:layout_height="6dp"
-                                android:background="@drawable/bg_badge_dot_grey"
-                                android:layout_marginEnd="4dp"/>
-                            <TextView
-                                android:id="@+id/txtBuzzerStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Chưa kết nối"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp"
-                                android:textStyle="bold"/>
-                        </LinearLayout>
+                            android:text="Chưa kết nối"
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold"/>
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
 
                 <!-- Ô 5: Phát hiện lửa -->
-                <com.google.android.material.card.MaterialCardView
+                <LinearLayout
                     android:layout_width="120dp"
                     android:layout_height="175dp"
                     android:layout_margin="6dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="3dp"
-                    app:cardBackgroundColor="#FFFFFF"
-                    app:strokeColor="#F1F5F9"
-                    app:strokeWidth="1dp">
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:gravity="center_horizontal"
+                    android:background="@drawable/bg_placeholder_glass_card"
+                    android:elevation="6dp"
+                    android:outlineProvider="background">
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        app:cardCornerRadius="23dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#FFECEF"
+                        app:strokeWidth="0dp"
+                        android:layout_marginBottom="8dp">
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            app:tint="#E11D48"
+                            app:srcCompat="@drawable/ic_fire"/>
+                    </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Phát hiện lửa"
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:id="@+id/txtFireValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="N/A"
+                        android:textColor="#1E293B"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"/>
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:gravity="center_horizontal">
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="46dp"
-                            android:layout_height="46dp"
-                            app:cardCornerRadius="23dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#F8FAFC"
-                            app:strokeWidth="0dp"
-                            android:layout_marginBottom="8dp">
-                            <ImageView
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:layout_gravity="center"
-                                app:srcCompat="@drawable/ic_fire"/>
-                        </com.google.android.material.card.MaterialCardView>
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <View
+                            android:id="@+id/viewFireDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_badge_dot_grey"
+                            android:layout_marginEnd="4dp"/>
                         <TextView
+                            android:id="@+id/txtFireStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Phát hiện lửa"
-                            android:textColor="#64748B"
-                            android:textSize="12sp"
-                            android:layout_marginBottom="4dp"/>
-                        <TextView
-                            android:id="@+id/txtFireValue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="N/A"
-                            android:textColor="#1E293B"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="12dp"/>
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-                            <View
-                                android:id="@+id/viewFireDot"
-                                android:layout_width="6dp"
-                                android:layout_height="6dp"
-                                android:background="@drawable/bg_badge_dot_grey"
-                                android:layout_marginEnd="4dp"/>
-                            <TextView
-                                android:id="@+id/txtFireStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Chưa kết nối"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp"
-                                android:textStyle="bold"/>
-                        </LinearLayout>
+                            android:text="Chưa kết nối"
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold"/>
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
 
             </LinearLayout>
         </HorizontalScrollView>
 
+        <TextView
+            android:id="@+id/txtDeviceListHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Khu vực điều khiển"
+            android:textColor="@color/safehome_text_dark"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp"/>
+
+        <LinearLayout
+            android:id="@+id/layoutDeviceListContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Placeholder Content for non-Home tabs (Monitor, Devices, Alerts, Settings) -->
+    <LinearLayout
+        android:id="@+id/layoutPlaceholderContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="6dp"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:strokeWidth="0dp"
+            android:layout_margin="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="32dp"
+                android:gravity="center"
+                android:background="@drawable/bg_placeholder_glass_card">
+
+                <!-- Glass Badge with Icon -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    app:cardCornerRadius="36dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/safehome_blue_soft"
+                    app:strokeWidth="0dp"
+                    android:layout_marginBottom="20dp">
+                    <ImageView
+                        android:id="@+id/imgPlaceholderIcon"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_footer_monitor"/>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:id="@+id/txtPlaceholderTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tính Năng"
+                    android:textColor="@color/safehome_text_dark"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/txtPlaceholderDesc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hệ thống đang đồng bộ dữ liệu..."
+                    android:textColor="@color/safehome_text_muted"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:layout_marginBottom="24dp"/>
+
+                <!-- Premium Decorative Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPlaceholderAction"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Quay lại Trang Chủ"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/safehome_blue_deep"
+                    app:cornerRadius="12dp"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"/>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
-</ScrollView>
+
+    <!-- Glassmorphic Footer Bottom Navigation Bar -->
+    <LinearLayout
+        android:id="@+id/footerCard"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:orientation="horizontal"
+        android:elevation="8dp"
+        android:background="@drawable/bg_placeholder_glass_card"
+        android:gravity="center_vertical"
+        android:weightSum="5">
+
+            <!-- Tab 1: Home -->
+            <LinearLayout
+                android:id="@+id/layoutTabHome"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless">
+                
+                <FrameLayout
+                    android:layout_width="42dp"
+                    android:layout_height="36dp">
+                    
+                    <View
+                        android:id="@+id/viewHomeActiveBg"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_footer_active_item"
+                        android:visibility="visible"/>
+                        
+                    <ImageView
+                        android:id="@+id/imgTabHome"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_footer_home"
+                        app:tint="@color/safehome_blue_deep"/>
+                </FrameLayout>
+                
+                <TextView
+                    android:id="@+id/txtTabHome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Home"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/safehome_blue_deep"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Tab 2: Monitor -->
+            <LinearLayout
+                android:id="@+id/layoutTabMonitor"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless">
+                
+                <FrameLayout
+                    android:layout_width="42dp"
+                    android:layout_height="36dp">
+                    
+                    <View
+                        android:id="@+id/viewMonitorActiveBg"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_footer_active_item"
+                        android:visibility="invisible"/>
+                        
+                    <ImageView
+                        android:id="@+id/imgTabMonitor"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_footer_monitor"
+                        app:tint="@color/safehome_text_muted"/>
+                </FrameLayout>
+                
+                <TextView
+                    android:id="@+id/txtTabMonitor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Monitor"
+                    android:textSize="10sp"
+                    android:textColor="@color/safehome_text_muted"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Tab 3: Devices -->
+            <LinearLayout
+                android:id="@+id/layoutTabDevices"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless">
+                
+                <FrameLayout
+                    android:layout_width="42dp"
+                    android:layout_height="36dp">
+                    
+                    <View
+                        android:id="@+id/viewDevicesActiveBg"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_footer_active_item"
+                        android:visibility="invisible"/>
+                        
+                    <ImageView
+                        android:id="@+id/imgTabDevices"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_footer_devices"
+                        app:tint="@color/safehome_text_muted"/>
+                </FrameLayout>
+                
+                <TextView
+                    android:id="@+id/txtTabDevices"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Devices"
+                    android:textSize="10sp"
+                    android:textColor="@color/safehome_text_muted"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Tab 4: Alerts -->
+            <LinearLayout
+                android:id="@+id/layoutTabAlerts"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless">
+                
+                <FrameLayout
+                    android:layout_width="42dp"
+                    android:layout_height="36dp">
+                    
+                    <View
+                        android:id="@+id/viewAlertsActiveBg"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_footer_active_item"
+                        android:visibility="invisible"/>
+                        
+                    <ImageView
+                        android:id="@+id/imgTabAlerts"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_footer_alerts"
+                        app:tint="@color/safehome_text_muted"/>
+                        
+                    <View
+                        android:id="@+id/viewAlertsRedBadge"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_gravity="top|end"
+                        android:layout_marginTop="5dp"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_badge_dot_red"/>
+                </FrameLayout>
+                
+                <TextView
+                    android:id="@+id/txtTabAlerts"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Alerts"
+                    android:textSize="10sp"
+                    android:textColor="@color/safehome_text_muted"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Tab 5: Settings -->
+            <LinearLayout
+                android:id="@+id/layoutTabSettings"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless">
+                
+                <FrameLayout
+                    android:layout_width="42dp"
+                    android:layout_height="36dp">
+                    
+                    <View
+                        android:id="@+id/viewSettingsActiveBg"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_footer_active_item"
+                        android:visibility="invisible"/>
+                        
+                    <ImageView
+                        android:id="@+id/imgTabSettings"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_footer_settings"
+                        app:tint="@color/safehome_text_muted"/>
+                </FrameLayout>
+                
+                <TextView
+                    android:id="@+id/txtTabSettings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Settings"
+                    android:textSize="10sp"
+                    android:textColor="@color/safehome_text_muted"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>

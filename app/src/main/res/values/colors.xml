@@ -19,8 +19,8 @@
     <color name="safehome_blue_deep">#2563EB</color>
     <color name="safehome_blue_soft">#EAF2FF</color>
     <color name="safehome_mint_soft">#E8F8EF</color>
-    <color name="safehome_glass">#CFFFFFFF</color>
-    <color name="safehome_glass_stroke">#E6FFFFFF</color>
+    <color name="safehome_glass">#99FFFFFF</color>
+    <color name="safehome_glass_stroke">#80FFFFFF</color>
     <color name="safehome_glass_shadow">#1A2563EB</color>
     <color name="safehome_input_glass">#B8FFFFFF</color>
 </resources>

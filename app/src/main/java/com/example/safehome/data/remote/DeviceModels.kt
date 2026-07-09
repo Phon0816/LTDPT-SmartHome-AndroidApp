@@ -1,15 +1,19 @@
 package com.example.safehome.data.remote
 
+import com.google.gson.annotations.SerializedName
+
 data class DeviceDto(
     val id: Int,
+    val deviceCode: String?,
     val name: String?,
-    val serialNumber: String?,
-    val status: String?,
-    val createdAt: String?
+    val sensor: SensorDataDto?,
+    val status: StatusDataDto?,
+    val control: ControlDataDto?,
+    val device: DeviceMetadataDto?
 )
 
 data class DeviceListResponse(
-    val data: List<DeviceDto>
+    val devices: List<DeviceDto>
 )
 
 data class ClaimDeviceRequest(
@@ -20,7 +24,7 @@ data class ClaimDeviceRequest(
 
 data class ClaimDeviceResponse(
     val message: String?,
-    val device: DeviceDto?
+    val data: DeviceDto?
 )
 
 data class DeviceHistoryResponse(
@@ -47,8 +51,11 @@ data class HistoryRecordDto(
 data class SensorDataDto(
     val temperature: Double,
     val humidity: Double,
+    @SerializedName(value = "mq2_raw", alternate = ["mq2Raw"])
     val mq2Raw: Int,
+    @SerializedName(value = "mq135_raw", alternate = ["mq135Raw"])
     val mq135Raw: Int,
+    @SerializedName(value = "flame_detected", alternate = ["flameDetected"])
     val flameDetected: Boolean
 )
 
@@ -62,11 +69,24 @@ data class StatusDataDto(
 )
 
 data class ControlDataDto(
+    @SerializedName("buzzer_active")
     val buzzerActive: Boolean,
+    @SerializedName("buzzer_muted")
     val buzzerMuted: Boolean,
     val led1: Boolean,
     val led2: Boolean,
     val led3: Boolean,
     val led4: Boolean,
     val led5: Boolean
+)
+
+data class DeviceMetadataDto(
+    @SerializedName("uptime_s")
+    val uptimeS: Long?,
+    @SerializedName("last_seen")
+    val lastSeen: String?,
+    @SerializedName("created_at")
+    val createdAt: String?,
+    @SerializedName("updated_at")
+    val updatedAt: String?
 )

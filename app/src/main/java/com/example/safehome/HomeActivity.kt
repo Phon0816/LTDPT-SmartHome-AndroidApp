@@ -77,6 +77,7 @@ class HomeActivity : AppCompatActivity() {
         bindStaticSensor("Temp", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Humid", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Gas", "N/A", "Chưa kết nối", "#94A3B8")
+        bindStaticSensor("Air", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Buzzer", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Fire", "N/A", "Chưa kết nối", "#94A3B8")
 
@@ -145,47 +146,264 @@ class HomeActivity : AppCompatActivity() {
                     btnAddDevice?.visibility = View.GONE
                 }
 
-                val latest = state.latestReading
-                if (latest != null) {
+                val sensor = state.latestReading?.sensor ?: state.activeDevice?.sensor
+                val status = state.latestReading?.status ?: state.activeDevice?.status
+                val control = state.latestReading?.control ?: state.activeDevice?.control
+
+                val lastUpdateTime = state.latestReading?.createdAt 
+                    ?: state.activeDevice?.device?.updatedAt 
+                    ?: state.activeDevice?.device?.lastSeen
+
+                val isOffline = isTimestampExpired(lastUpdateTime)
+
+                if (sensor != null && status != null && control != null && !isOffline) {
                     // Cập nhật Nhiệt độ
-                    val temp = latest.sensor.temperature
-                    val tempStatus = latest.status.temperature
+                    val temp = sensor.temperature
+                    val tempStatus = status.temperature
                     val tempColor = if (tempStatus == "SAFE") "#22C55E" else "#EF4444"
                     val tempStatusText = if (tempStatus == "SAFE") "Bình thường" else "Nóng"
                     bindStaticSensor("Temp", "$temp°C", tempStatusText, tempColor)
 
                     // Cập nhật Độ ẩm
-                    val humid = latest.sensor.humidity
-                    val humidStatus = latest.status.humidity
+                    val humid = sensor.humidity
+                    val humidStatus = status.humidity
                     val humidColor = if (humidStatus == "SAFE") "#22C55E" else "#EF4444"
                     val humidStatusText = if (humidStatus == "SAFE") "Bình thường" else "Kém"
                     bindStaticSensor("Humid", "$humid%", humidStatusText, humidColor)
 
-                    // Cập nhật Khí gas (MQ-2 quy đổi ADC sang PPM)
-                    val rawMq2 = latest.sensor.mq2Raw
-                    val mq2Ppm = if (rawMq2 > 400) {
-                        ((rawMq2 - 400).toDouble() / (4095 - 400) * 1000).toInt().coerceAtLeast(0)
-                    } else 0
-                    val mq2Status = latest.status.mq2
+                    // Cập nhật Khí gas (MQ-2 quy đổi ADC sang PPM tuyến tính từ 0)
+                    val rawMq2 = sensor.mq2Raw
+                    val mq2Ppm = ((rawMq2.toDouble() / 4095.0) * 1000).toInt()
+                    val mq2Status = status.mq2
                     val mq2Color = if (mq2Status == "SAFE") "#22C55E" else "#EF4444"
                     val mq2StatusText = if (mq2Status == "SAFE") "Bình thường" else "Rò rỉ khói/gas!"
                     bindStaticSensor("Gas", "$mq2Ppm ppm", mq2StatusText, mq2Color)
 
+                    // Cập nhật Chất lượng không khí (MQ-135 quy đổi ADC sang PPM tuyến tính từ 0)
+                    val rawMq135 = sensor.mq135Raw
+                    val mq135Ppm = ((rawMq135.toDouble() / 4095.0) * 1000).toInt()
+                    val mq135Status = status.mq135
+                    val mq135Color = if (mq135Status == "SAFE") "#22C55E" else "#EF4444"
+                    val mq135StatusText = if (mq135Status == "SAFE") "Bình thường" else "Ô nhiễm!"
+                    bindStaticSensor("Air", "$mq135Ppm ppm", mq135StatusText, mq135Color)
+
                     // Cập nhật Còi báo (Buzzer)
-                    val buzzerActive = latest.control.buzzerActive
+                    val buzzerActive = control.buzzerActive
                     val buzzerValueText = if (buzzerActive) "BẬT" else "TẮT"
                     val buzzerStatusText = if (buzzerActive) "Đang kêu!" else "Bình thường"
                     val buzzerColor = if (buzzerActive) "#EF4444" else "#22C55E"
                     bindStaticSensor("Buzzer", buzzerValueText, buzzerStatusText, buzzerColor)
 
                     // Cập nhật Phát hiện lửa
-                    val flame = latest.sensor.flameDetected
+                    val flame = sensor.flameDetected
                     val flameColor = if (flame) "#EF4444" else "#22C55E"
                     val flameStatusText = if (flame) "Nguy hiểm!" else "Bình thường"
                     bindStaticSensor("Fire", if (flame) "Có lửa!" else "Không", flameStatusText, flameColor)
+                } else {
+                    // Nếu không nhận được tín hiệu mới trong 20 giây -> tự động reset về N/A
+                    bindStaticSensor("Temp", "N/A", "Mất kết nối", "#94A3B8")
+                    bindStaticSensor("Humid", "N/A", "Mất kết nối", "#94A3B8")
+                    bindStaticSensor("Gas", "N/A", "Mất kết nối", "#94A3B8")
+                    bindStaticSensor("Air", "N/A", "Mất kết nối", "#94A3B8")
+                    bindStaticSensor("Buzzer", "N/A", "Mất kết nối", "#94A3B8")
+                    bindStaticSensor("Fire", "N/A", "Mất kết nối", "#94A3B8")
+                }
+
+                // Dynamic Device List Card Population
+                val container = findViewById<android.widget.LinearLayout>(R.id.layoutDeviceListContainer)
+                container?.removeAllViews()
+
+                if (!state.hasNoDevices && state.devices.isNotEmpty()) {
+                    state.devices.forEach { device ->
+                        val cardView = layoutInflater.inflate(R.layout.item_device_room, container, false)
+                        
+                        val txtDeviceRoomName = cardView.findViewById<TextView>(R.id.txtDeviceRoomName)
+                        val txtDeviceRoomCode = cardView.findViewById<TextView>(R.id.txtDeviceRoomCode)
+                        val viewRoomStatusDot = cardView.findViewById<View>(R.id.viewRoomStatusDot)
+                        val txtRoomStatus = cardView.findViewById<TextView>(R.id.txtRoomStatus)
+                        
+                        txtDeviceRoomName.text = device.name ?: "Thiết bị không tên"
+                        txtDeviceRoomCode.text = "Code: ${device.deviceCode ?: "N/A"}"
+                        
+                        val deviceLastSeen = device.device?.updatedAt ?: device.device?.lastSeen
+                        val deviceOffline = isTimestampExpired(deviceLastSeen)
+                        
+                        if (deviceOffline) {
+                            viewRoomStatusDot.setBackgroundResource(R.drawable.bg_badge_dot_grey)
+                            txtRoomStatus.text = "Ngoại tuyến"
+                            txtRoomStatus.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+                        } else {
+                            viewRoomStatusDot.setBackgroundResource(R.drawable.bg_badge_dot_green)
+                            txtRoomStatus.text = "Hoạt động"
+                            txtRoomStatus.setTextColor(android.graphics.Color.parseColor("#22C55E"))
+                        }
+                        
+                        val deviceControl = device.control
+                        
+                        val bindLedButton = { layoutId: Int, bgId: Int, imgId: Int, ledKey: String, isLedOn: Boolean ->
+                            val layout = cardView.findViewById<View>(layoutId)
+                            val bg = cardView.findViewById<View>(bgId)
+                            val img = cardView.findViewById<android.widget.ImageView>(imgId)
+                            
+                            if (isLedOn) {
+                                bg.visibility = View.VISIBLE
+                                img.setColorFilter(android.graphics.Color.parseColor("#F59E0B"))
+                            } else {
+                                bg.visibility = View.INVISIBLE
+                                img.setColorFilter(android.graphics.Color.parseColor("#94A3B8"))
+                            }
+                            
+                            layout.setOnClickListener {
+                                homeViewModel.controlDeviceLed(device.id, ledKey, !isLedOn)
+                            }
+                        }
+                        
+                        bindLedButton(R.id.layoutLed1, R.id.viewLed1Bg, R.id.imgLed1, "led1", deviceControl?.led1 ?: false)
+                        bindLedButton(R.id.layoutLed2, R.id.viewLed2Bg, R.id.imgLed2, "led2", deviceControl?.led2 ?: false)
+                        bindLedButton(R.id.layoutLed3, R.id.viewLed3Bg, R.id.imgLed3, "led3", deviceControl?.led3 ?: false)
+                        bindLedButton(R.id.layoutLed4, R.id.viewLed4Bg, R.id.imgLed4, "led4", deviceControl?.led4 ?: false)
+                        bindLedButton(R.id.layoutLed5, R.id.viewLed5Bg, R.id.imgLed5, "led5", deviceControl?.led5 ?: false)
+                        
+                        container.addView(cardView)
+                    }
                 }
             }
         }
+
+        // --- SETUP FOOTER BOTTOM NAVIGATION ---
+        val layoutTabHome = findViewById<View>(R.id.layoutTabHome)
+        val layoutTabMonitor = findViewById<View>(R.id.layoutTabMonitor)
+        val layoutTabDevices = findViewById<View>(R.id.layoutTabDevices)
+        val layoutTabAlerts = findViewById<View>(R.id.layoutTabAlerts)
+        val layoutTabSettings = findViewById<View>(R.id.layoutTabSettings)
+
+        val viewHomeActiveBg = findViewById<View>(R.id.viewHomeActiveBg)
+        val viewMonitorActiveBg = findViewById<View>(R.id.viewMonitorActiveBg)
+        val viewDevicesActiveBg = findViewById<View>(R.id.viewDevicesActiveBg)
+        val viewAlertsActiveBg = findViewById<View>(R.id.viewAlertsActiveBg)
+        val viewSettingsActiveBg = findViewById<View>(R.id.viewSettingsActiveBg)
+
+        val imgTabHome = findViewById<android.widget.ImageView>(R.id.imgTabHome)
+        val imgTabMonitor = findViewById<android.widget.ImageView>(R.id.imgTabMonitor)
+        val imgTabDevices = findViewById<android.widget.ImageView>(R.id.imgTabDevices)
+        val imgTabAlerts = findViewById<android.widget.ImageView>(R.id.imgTabAlerts)
+        val imgTabSettings = findViewById<android.widget.ImageView>(R.id.imgTabSettings)
+
+        val txtTabHome = findViewById<TextView>(R.id.txtTabHome)
+        val txtTabMonitor = findViewById<TextView>(R.id.txtTabMonitor)
+        val txtTabDevices = findViewById<TextView>(R.id.txtTabDevices)
+        val txtTabAlerts = findViewById<TextView>(R.id.txtTabAlerts)
+        val txtTabSettings = findViewById<TextView>(R.id.txtTabSettings)
+
+        val homeScrollView = findViewById<View>(R.id.homeScrollView)
+        val layoutPlaceholderContent = findViewById<View>(R.id.layoutPlaceholderContent)
+        val imgPlaceholderIcon = findViewById<android.widget.ImageView>(R.id.imgPlaceholderIcon)
+        val txtPlaceholderTitle = findViewById<TextView>(R.id.txtPlaceholderTitle)
+        val txtPlaceholderDesc = findViewById<TextView>(R.id.txtPlaceholderDesc)
+        val btnPlaceholderAction = findViewById<View>(R.id.btnPlaceholderAction)
+
+        val blueDeepColor = android.graphics.Color.parseColor("#2563EB")
+        val textMutedColor = android.graphics.Color.parseColor("#64748B")
+
+        val resetTabsUi = {
+            viewHomeActiveBg.visibility = View.INVISIBLE
+            viewMonitorActiveBg.visibility = View.INVISIBLE
+            viewDevicesActiveBg.visibility = View.INVISIBLE
+            viewAlertsActiveBg.visibility = View.INVISIBLE
+            viewSettingsActiveBg.visibility = View.INVISIBLE
+
+            imgTabHome.setColorFilter(textMutedColor)
+            imgTabMonitor.setColorFilter(textMutedColor)
+            imgTabDevices.setColorFilter(textMutedColor)
+            imgTabAlerts.setColorFilter(textMutedColor)
+            imgTabSettings.setColorFilter(textMutedColor)
+
+            txtTabHome.setTextColor(textMutedColor)
+            txtTabMonitor.setTextColor(textMutedColor)
+            txtTabDevices.setTextColor(textMutedColor)
+            txtTabAlerts.setTextColor(textMutedColor)
+            txtTabSettings.setTextColor(textMutedColor)
+
+            txtTabHome.setTypeface(null, android.graphics.Typeface.NORMAL)
+            txtTabMonitor.setTypeface(null, android.graphics.Typeface.NORMAL)
+            txtTabDevices.setTypeface(null, android.graphics.Typeface.NORMAL)
+            txtTabAlerts.setTypeface(null, android.graphics.Typeface.NORMAL)
+            txtTabSettings.setTypeface(null, android.graphics.Typeface.NORMAL)
+        }
+
+        val selectTab = { tabIndex: Int ->
+            resetTabsUi()
+            when (tabIndex) {
+                0 -> {
+                    viewHomeActiveBg.visibility = View.VISIBLE
+                    imgTabHome.setColorFilter(blueDeepColor)
+                    txtTabHome.setTextColor(blueDeepColor)
+                    txtTabHome.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                    homeScrollView.visibility = View.VISIBLE
+                    layoutPlaceholderContent.visibility = View.GONE
+                }
+                1 -> {
+                    viewMonitorActiveBg.visibility = View.VISIBLE
+                    imgTabMonitor.setColorFilter(blueDeepColor)
+                    txtTabMonitor.setTextColor(blueDeepColor)
+                    txtTabMonitor.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                    homeScrollView.visibility = View.GONE
+                    layoutPlaceholderContent.visibility = View.VISIBLE
+
+                    imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_monitor)
+                    txtPlaceholderTitle.text = "Giám Sát Hệ Thống"
+                    txtPlaceholderDesc.text = "Biểu đồ trực quan và thống kê dữ liệu cảm biến của bạn sẽ được hiển thị tại đây."
+                }
+                2 -> {
+                    viewDevicesActiveBg.visibility = View.VISIBLE
+                    imgTabDevices.setColorFilter(blueDeepColor)
+                    txtTabDevices.setTextColor(blueDeepColor)
+                    txtTabDevices.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                    homeScrollView.visibility = View.GONE
+                    layoutPlaceholderContent.visibility = View.VISIBLE
+
+                    imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_devices)
+                    txtPlaceholderTitle.text = "Quản Lý Thiết Bị"
+                    txtPlaceholderDesc.text = "Danh sách và cấu hình chi tiết các thiết bị phần cứng IoT đã liên kết trong nhà bạn."
+                }
+                3 -> {
+                    viewAlertsActiveBg.visibility = View.VISIBLE
+                    imgTabAlerts.setColorFilter(blueDeepColor)
+                    txtTabAlerts.setTextColor(blueDeepColor)
+                    txtTabAlerts.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                    homeScrollView.visibility = View.GONE
+                    layoutPlaceholderContent.visibility = View.VISIBLE
+
+                    imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_alerts)
+                    txtPlaceholderTitle.text = "Hộp Thư Cảnh Báo"
+                    txtPlaceholderDesc.text = "Lịch sử và nhật ký các thông báo khẩn cấp khi phát hiện rò rỉ khí gas, khói hoặc lửa."
+                }
+                4 -> {
+                    viewSettingsActiveBg.visibility = View.VISIBLE
+                    imgTabSettings.setColorFilter(blueDeepColor)
+                    txtTabSettings.setTextColor(blueDeepColor)
+                    txtTabSettings.setTypeface(null, android.graphics.Typeface.BOLD)
+
+                    homeScrollView.visibility = View.GONE
+                    layoutPlaceholderContent.visibility = View.VISIBLE
+
+                    imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_settings)
+                    txtPlaceholderTitle.text = "Cài Đặt Hệ Thống"
+                    txtPlaceholderDesc.text = "Tùy chỉnh thông tin cá nhân, cấu hình ngưỡng cảnh báo khẩn cấp và thiết lập tài khoản."
+                }
+            }
+        }
+
+        layoutTabHome.setOnClickListener { selectTab(0) }
+        layoutTabMonitor.setOnClickListener { selectTab(1) }
+        layoutTabDevices.setOnClickListener { selectTab(2) }
+        layoutTabAlerts.setOnClickListener { selectTab(3) }
+        layoutTabSettings.setOnClickListener { selectTab(4) }
+        btnPlaceholderAction.setOnClickListener { selectTab(0) }
     }
 
     private fun createAuthViewModel(): AuthViewModel {
@@ -223,5 +441,17 @@ class HomeActivity : AppCompatActivity() {
         val deviceRepository = DeviceRepository(deviceApi)
         val factory = HomeViewModelFactory(deviceRepository)
         return ViewModelProvider(this, factory)[HomeViewModel::class.java]
+    }
+
+    private fun isTimestampExpired(createdAt: String?): Boolean {
+        if (createdAt.isNullOrBlank()) return true
+        return try {
+            val createdInstant = java.time.Instant.parse(createdAt)
+            val now = java.time.Instant.now()
+            val diffSeconds = java.time.Duration.between(createdInstant, now).seconds
+            java.lang.Math.abs(diffSeconds) > 20
+        } catch (e: Exception) {
+            false
+        }
     }
 }

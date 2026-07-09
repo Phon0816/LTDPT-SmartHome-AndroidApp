@@ -21,7 +21,8 @@ data class HomeUiState(
     val isClaiming: Boolean = false,
     val claimSuccess: Boolean = false,
     val claimError: String? = null,
-    val hasNoDevices: Boolean = false
+    val hasNoDevices: Boolean = false,
+    val lastPollTime: Long = 0L
 )
 
 class HomeViewModel(
@@ -31,6 +32,10 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    // Cờ tạm dừng polling khi đang gửi lệnh điều khiển đèn
+    @Volatile
+    private var isControlling = false
+
     fun loadDevices() {
         viewModelScope.launch {
             Log.d("HomeViewModel", "📡 Calling getDevices...")
@@ -39,7 +44,7 @@ class HomeViewModel(
                 val response = deviceRepository.getDevices()
                 Log.d("HomeViewModel", "✅ getDevices response: ${response.code()} body=${response.body()}")
                 if (response.isSuccessful) {
-                    val deviceList = response.body()?.data ?: emptyList()
+                    val deviceList = response.body()?.devices ?: emptyList()
                     val active = deviceList.firstOrNull()
                     Log.d("HomeViewModel", "📱 Active device: $active")
                     _uiState.value = _uiState.value.copy(
@@ -77,33 +82,35 @@ class HomeViewModel(
 
     fun loadDeviceHistory(deviceId: Int) {
         historyPollJob?.cancel()
-        Log.d("HomeViewModel", "🔄 Starting poll for deviceId=$deviceId")
+        Log.d("HomeViewModel", "🔄 Starting device poll (via getDevices) for deviceId=$deviceId")
         historyPollJob = viewModelScope.launch {
             while (true) {
-                try {
-                    Log.d("HomeViewModel", "📡 Calling getDeviceHistory(id=$deviceId)...")
-                    val response = deviceRepository.getDeviceHistory(deviceId)
-                    Log.d("HomeViewModel", "✅ history response: ${response.code()} data=${response.body()?.data?.size} items")
-                    if (response.isSuccessful) {
-                        val history = response.body()
-                        val latest = history?.data?.firstOrNull()
-                        Log.d("HomeViewModel", "🎯 Latest reading: temp=${latest?.sensor?.temperature} humid=${latest?.sensor?.humidity}")
-                        _uiState.value = _uiState.value.copy(
-                            latestReading = latest,
-                            errorMessage = null
-                        )
-                    } else {
-                        Log.e("HomeViewModel", "❌ history error: ${response.code()} ${response.errorBody()?.string()}")
-                        if (response.code() != 404) {
-                            _uiState.value = _uiState.value.copy(
-                                errorMessage = "Không thể tải lịch sử thiết bị (${response.code()})"
-                            )
+                if (!isControlling) { // Bỏ qua nếu đang gửi lệnh điều khiển
+                    try {
+                        Log.d("HomeViewModel", "📡 Polling getDevices for fresh sensor data...")
+                        val response = deviceRepository.getDevices()
+                        if (response.isSuccessful) {
+                            val deviceList = response.body()?.devices ?: emptyList()
+                            val updatedDevice = deviceList.firstOrNull { it.id == deviceId }
+                            if (updatedDevice != null) {
+                                Log.d("HomeViewModel", "🎯 Poll: temp=${updatedDevice.sensor?.temperature} humid=${updatedDevice.sensor?.humidity}")
+                                _uiState.value = _uiState.value.copy(
+                                    devices = deviceList,
+                                    activeDevice = updatedDevice,
+                                    lastPollTime = System.currentTimeMillis(),
+                                    errorMessage = null
+                                )
+                            }
+                        } else {
+                            Log.e("HomeViewModel", "❌ poll error: ${response.code()}")
+                            _uiState.value = _uiState.value.copy(lastPollTime = System.currentTimeMillis())
                         }
+                    } catch (e: Exception) {
+                        Log.e("HomeViewModel", "💥 poll exception: ${e.message}")
+                        _uiState.value = _uiState.value.copy(lastPollTime = System.currentTimeMillis())
                     }
-                } catch (e: Exception) {
-                    Log.e("HomeViewModel", "💥 history exception: ${e.message}")
                 }
-                kotlinx.coroutines.delay(3000) // Polling tự động mỗi 3 giây
+                kotlinx.coroutines.delay(3000)
             }
         }
     }
@@ -132,7 +139,7 @@ class HomeViewModel(
                     val errBody = response.errorBody()?.string()
                     Log.e("HomeViewModel", "❌ Claim error: ${response.code()} $errBody")
                     val msg = when (response.code()) {
-                        400 -> "Mã thiết bị hoặc mật khẩu không đúng"
+                        400, 401 -> "Mã thiết bị hoặc mật khẩu không đúng"
                         409 -> "Thiết bị đã được liên kết với tài khoản khác"
                         404 -> "Không tìm thấy thiết bị với mã này"
                         else -> "Thất bại (${response.code()})"
@@ -151,5 +158,61 @@ class HomeViewModel(
 
     fun resetClaimState() {
         _uiState.value = _uiState.value.copy(claimSuccess = false, claimError = null)
+    }
+
+    fun controlDeviceLed(deviceId: Int, ledKey: String, state: Boolean) {
+        val oldDevices = _uiState.value.devices
+
+        // 1. UPDATE STATE IMMEDIATELY (True Optimistic Update)
+        val updatedDevices = _uiState.value.devices.map { device ->
+            if (device.id == deviceId) {
+                val currentControl = device.control
+                val updatedControl = when (ledKey) {
+                    "led1" -> currentControl?.copy(led1 = state)
+                    "led2" -> currentControl?.copy(led2 = state)
+                    "led3" -> currentControl?.copy(led3 = state)
+                    "led4" -> currentControl?.copy(led4 = state)
+                    "led5" -> currentControl?.copy(led5 = state)
+                    else -> currentControl
+                }
+                device.copy(control = updatedControl)
+            } else {
+                device
+            }
+        }
+        val updatedActive = updatedDevices.firstOrNull { it.id == _uiState.value.activeDevice?.id }
+        _uiState.value = _uiState.value.copy(
+            devices = updatedDevices,
+            activeDevice = updatedActive ?: _uiState.value.activeDevice
+        )
+
+        // 2. Gửi lệnh xuống ESP32 qua Backend
+        viewModelScope.launch {
+            isControlling = true // Dừng polling, tránh ghi đè UI
+            try {
+                Log.d("HomeViewModel", "💡 Toggling LED: deviceId=$deviceId key=$ledKey state=$state")
+                val response = deviceRepository.controlDevice(deviceId, mapOf(ledKey to state))
+                if (response.isSuccessful) {
+                    Log.d("HomeViewModel", "✅ Control LED success: ${response.code()}")
+                } else {
+                    Log.e("HomeViewModel", "❌ Control LED error: ${response.code()}, reverting state")
+                    revertDeviceState(oldDevices)
+                }
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "💥 Control LED exception: ${e.message}, reverting state")
+                revertDeviceState(oldDevices)
+            } finally {
+                kotlinx.coroutines.delay(4000) // Chờ ESP32 cập nhật xong rồi mới poll lại
+                isControlling = false
+            }
+        }
+    }
+
+    private fun revertDeviceState(oldDevices: List<DeviceDto>) {
+        val updatedActive = oldDevices.firstOrNull { it.id == _uiState.value.activeDevice?.id }
+        _uiState.value = _uiState.value.copy(
+            devices = oldDevices,
+            activeDevice = updatedActive ?: _uiState.value.activeDevice
+        )
     }
 }

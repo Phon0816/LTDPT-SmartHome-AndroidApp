@@ -20,4 +20,10 @@ interface DeviceApi {
     suspend fun claimDevice(
         @Body request: ClaimDeviceRequest
     ): Response<ClaimDeviceResponse>
+
+    @POST("api/user/devices/{id}/control")
+    suspend fun controlDevice(
+        @Path("id") id: Int,
+        @Body request: Map<String, Boolean>
+    ): Response<okhttp3.ResponseBody>
 }
