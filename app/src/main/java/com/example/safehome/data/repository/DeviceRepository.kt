@@ -19,8 +19,8 @@ class DeviceRepository(
         return deviceApi.getDeviceDetail(id)
     }
 
-    suspend fun getDeviceHistory(id: Int): Response<DeviceHistoryResponse> {
-        return deviceApi.getDeviceHistory(id)
+    suspend fun getDeviceHistory(id: Int, page: Int = 1, limit: Int = 100): Response<DeviceHistoryResponse> {
+        return deviceApi.getDeviceHistory(id, page, limit)
     }
 
     suspend fun claimDevice(code: String, secret: String, name: String): Response<ClaimDeviceResponse> {
