@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "131483850617",
+    "project_id": "safehome-fcm",
+    "storage_bucket": "safehome-fcm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131483850617:android:98c084c72992fb707c81a8",
+        "android_client_info": {
+          "package_name": "com.example.safehome"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNDxcczfe4Mx12wBjXvBuUgMka2vz4s_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

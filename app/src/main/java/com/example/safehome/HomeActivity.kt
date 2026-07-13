@@ -12,6 +12,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.safehome.R
 import com.example.safehome.data.local.TokenManager
 import com.example.safehome.data.remote.RetrofitClient
@@ -23,6 +25,8 @@ import com.example.safehome.ui.home.ClaimDeviceBottomSheet
 import com.example.safehome.ui.home.HomeViewModel
 import com.example.safehome.ui.home.HomeViewModelFactory
 import com.example.safehome.data.repository.DeviceRepository
+import com.example.safehome.ui.device.DeviceAdapter
+import com.example.safehome.ui.device.DeviceDetailActivity
 import com.example.safehome.ui.notification.NotificationActivity
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
@@ -42,6 +46,7 @@ class HomeActivity : AppCompatActivity() {
     private var lastErrorMessage: String? = null
     private var hasLoadedDevices = false
     private var requestedFcmSync = false
+    private lateinit var devicesTabAdapter: DeviceAdapter
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -116,6 +121,8 @@ class HomeActivity : AppCompatActivity() {
         bindStaticSensor("Air", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Buzzer", "N/A", "Chưa kết nối", "#94A3B8")
         bindStaticSensor("Fire", "N/A", "Chưa kết nối", "#94A3B8")
+
+        setupDevicesTabContent()
 
         lifecycleScope.launch {
             authViewModel.uiState.collect { state ->
@@ -306,6 +313,13 @@ class HomeActivity : AppCompatActivity() {
                         container.addView(cardView)
                     }
                 }
+
+                devicesTabAdapter.submitList(state.devices)
+                val recyclerDevicesTab = findViewById<RecyclerView>(R.id.recyclerDevicesTab)
+                val layoutDeviceEmptyTab = findViewById<View>(R.id.layoutDeviceEmptyTab)
+                val showDevicesTabEmpty = state.devices.isEmpty()
+                recyclerDevicesTab?.visibility = if (showDevicesTabEmpty) View.GONE else View.VISIBLE
+                layoutDeviceEmptyTab?.visibility = if (showDevicesTabEmpty) View.VISIBLE else View.GONE
             }
         }
 
@@ -385,6 +399,28 @@ class HomeActivity : AppCompatActivity() {
         return ViewModelProvider(this, factory)[HomeViewModel::class.java]
     }
 
+    private fun setupDevicesTabContent() {
+        val recyclerDevicesTab = findViewById<RecyclerView>(R.id.recyclerDevicesTab)
+        val fabAddDeviceTab = findViewById<View>(R.id.fabAddDeviceTab)
+        val btnLinkDeviceTab = findViewById<MaterialButton>(R.id.btnLinkDevice)
+
+        devicesTabAdapter = DeviceAdapter { device ->
+            val intent = Intent(this, DeviceDetailActivity::class.java)
+            intent.putExtra("deviceId", device.id)
+            startActivity(intent)
+        }
+
+        recyclerDevicesTab?.layoutManager = LinearLayoutManager(this)
+        recyclerDevicesTab?.adapter = devicesTabAdapter
+
+        val openClaimSheet = {
+            ClaimDeviceBottomSheet().show(supportFragmentManager, ClaimDeviceBottomSheet.TAG)
+        }
+
+        fabAddDeviceTab?.setOnClickListener { openClaimSheet() }
+        btnLinkDeviceTab?.setOnClickListener { openClaimSheet() }
+    }
+
     private fun isTimestampExpired(createdAt: String?): Boolean {
         if (createdAt.isNullOrBlank()) return true
         return try {
@@ -427,6 +463,10 @@ class HomeActivity : AppCompatActivity() {
 
         val homeScrollView = findViewById<View>(R.id.homeScrollView) ?: return
         val layoutPlaceholderContent = findViewById<View>(R.id.layoutPlaceholderContent) ?: return
+        val layoutDevicesTabContent = findViewById<View>(R.id.layoutDevicesTabContent) ?: return
+        val cardPlaceholderPanel = findViewById<View>(R.id.cardPlaceholderPanel) ?: return
+        val btnNotifications = findViewById<View>(R.id.btnNotifications) ?: return
+        val btnLogout = findViewById<View>(R.id.btnLogout) ?: return
         val imgPlaceholderIcon = findViewById<android.widget.ImageView>(R.id.imgPlaceholderIcon) ?: return
         val txtPlaceholderTitle = findViewById<TextView>(R.id.txtPlaceholderTitle) ?: return
         val txtPlaceholderDesc = findViewById<TextView>(R.id.txtPlaceholderDesc) ?: return
@@ -459,6 +499,11 @@ class HomeActivity : AppCompatActivity() {
         txtTabAlerts.setTypeface(null, android.graphics.Typeface.NORMAL)
         txtTabSettings.setTypeface(null, android.graphics.Typeface.NORMAL)
 
+        layoutDevicesTabContent.visibility = View.GONE
+        cardPlaceholderPanel.visibility = View.VISIBLE
+        btnNotifications.visibility = View.VISIBLE
+        btnLogout.visibility = View.VISIBLE
+
         when (tabIndex) {
             0 -> {
                 viewHomeActiveBg.visibility = View.VISIBLE
@@ -490,10 +535,10 @@ class HomeActivity : AppCompatActivity() {
 
                 homeScrollView.visibility = View.GONE
                 layoutPlaceholderContent.visibility = View.VISIBLE
-
-                imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_devices)
-                txtPlaceholderTitle.text = "Quản Lý Thiết Bị"
-                txtPlaceholderDesc.text = "Danh sách và cấu hình chi tiết các thiết bị phần cứng IoT đã liên kết trong nhà bạn."
+                layoutDevicesTabContent.visibility = View.VISIBLE
+                cardPlaceholderPanel.visibility = View.GONE
+                btnNotifications.visibility = View.GONE
+                btnLogout.visibility = View.GONE
             }
             3 -> {
                 viewAlertsActiveBg.visibility = View.VISIBLE
@@ -523,4 +568,5 @@ class HomeActivity : AppCompatActivity() {
             }
         }
     }
+
 }

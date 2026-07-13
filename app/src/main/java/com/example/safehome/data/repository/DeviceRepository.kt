@@ -3,6 +3,7 @@ package com.example.safehome.data.repository
 import com.example.safehome.data.remote.ClaimDeviceRequest
 import com.example.safehome.data.remote.ClaimDeviceResponse
 import com.example.safehome.data.remote.DeviceApi
+import com.example.safehome.data.remote.DeviceDetailResponse
 import com.example.safehome.data.remote.DeviceHistoryResponse
 import com.example.safehome.data.remote.DeviceListResponse
 import retrofit2.Response
@@ -12,6 +13,10 @@ class DeviceRepository(
 ) {
     suspend fun getDevices(): Response<DeviceListResponse> {
         return deviceApi.getDevices()
+    }
+
+    suspend fun getDeviceDetail(id: Int): Response<DeviceDetailResponse> {
+        return deviceApi.getDeviceDetail(id)
     }
 
     suspend fun getDeviceHistory(id: Int): Response<DeviceHistoryResponse> {

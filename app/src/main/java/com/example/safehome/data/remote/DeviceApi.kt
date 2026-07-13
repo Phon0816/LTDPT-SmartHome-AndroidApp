@@ -11,6 +11,11 @@ interface DeviceApi {
     @GET("api/user/devices")
     suspend fun getDevices(): Response<DeviceListResponse>
 
+    @GET("api/user/devices/{id}")
+    suspend fun getDeviceDetail(
+        @Path("id") id: Int
+    ): Response<DeviceDetailResponse>
+
     @GET("api/user/devices/{id}/history")
     suspend fun getDeviceHistory(
         @Path("id") id: Int

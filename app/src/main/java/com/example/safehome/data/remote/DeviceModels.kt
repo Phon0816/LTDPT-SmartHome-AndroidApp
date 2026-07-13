@@ -90,3 +90,7 @@ data class DeviceMetadataDto(
     @SerializedName(value = "updated_at", alternate = ["updatedAt"])
     val updatedAt: String?
 )
+
+data class DeviceDetailResponse(
+    val data: DeviceDto
+)

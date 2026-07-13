@@ -25,4 +25,5 @@
     <color name="safehome_input_glass">#B8FFFFFF</color>
     <color name="safehome_warning_text">#B45309</color>
     <color name="safehome_danger_text">#B91C1C</color>
+    <color name="safehome_green_700">#15803D</color>
 </resources>

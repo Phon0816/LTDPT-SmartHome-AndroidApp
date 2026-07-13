@@ -679,7 +679,46 @@
         android:gravity="center"
         android:visibility="gone">
 
+        <FrameLayout
+            android:id="@+id/layoutDevicesTabContent"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone">
+
+            <include
+                android:id="@+id/layoutDeviceEmptyTab"
+                layout="@layout/layout_device_empty"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerDevicesTab"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingStart="4dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="88dp"
+                tools:itemCount="3"
+                tools:listitem="@layout/item_device" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fabAddDeviceTab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="4dp"
+                android:layout_marginBottom="88dp"
+                android:contentDescription="Liên kết thiết bị"
+                app:backgroundTint="@color/safehome_blue_deep"
+                app:srcCompat="@drawable/ic_add_device" />
+        </FrameLayout>
+
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPlaceholderPanel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="24dp"
