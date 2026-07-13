@@ -141,6 +141,7 @@
                     
                     <!-- Badge SAFE -->
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardSafetyBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="6dp"
@@ -149,6 +150,7 @@
                         app:strokeWidth="0dp"
                         android:layout_marginBottom="6dp">
                         <TextView
+                            android:id="@+id/txtSafetyBadge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="✓ SAFE"
@@ -162,6 +164,7 @@
                     </com.google.android.material.card.MaterialCardView>
                     
                     <TextView
+                        android:id="@+id/txtSafetyMessage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Nhà của bạn đang được bảo vệ"
@@ -171,6 +174,7 @@
                         android:layout_marginBottom="4dp" />
                     
                     <TextView
+                        android:id="@+id/txtSafetyScore"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="92%"
@@ -200,6 +204,7 @@
                             app:tint="#64748B"
                             android:layout_marginEnd="4dp" />
                         <TextView
+                            android:id="@+id/txtSafetyLastUpdated"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Cập nhật 10 giây trước"

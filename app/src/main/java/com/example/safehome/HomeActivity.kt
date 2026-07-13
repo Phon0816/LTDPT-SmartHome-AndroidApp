@@ -245,6 +245,9 @@ class HomeActivity : AppCompatActivity() {
                     val flameColor = if (flame) "#EF4444" else "#22C55E"
                     val flameStatusText = if (flame) "Nguy hiểm!" else "Bình thường"
                     bindStaticSensor("Fire", if (flame) "Có lửa!" else "Không", flameStatusText, flameColor)
+
+                    // Cập nhật thẻ điểm an toàn hệ thống
+                    updateSafetyCard(status, lastUpdateTime, false)
                 } else {
                     // Nếu không nhận được tín hiệu mới trong 20 giây -> tự động reset về N/A
                     bindStaticSensor("Temp", "N/A", "Mất kết nối", "#94A3B8")
@@ -253,6 +256,9 @@ class HomeActivity : AppCompatActivity() {
                     bindStaticSensor("Air", "N/A", "Mất kết nối", "#94A3B8")
                     bindStaticSensor("Buzzer", "N/A", "Mất kết nối", "#94A3B8")
                     bindStaticSensor("Fire", "N/A", "Mất kết nối", "#94A3B8")
+
+                    // Cập nhật thẻ điểm an toàn hệ thống ngoại tuyến
+                    updateSafetyCard(null, null, true, state.hasNoDevices)
                 }
 
                 // Dynamic Device List Card Population
@@ -566,6 +572,114 @@ class HomeActivity : AppCompatActivity() {
                 txtPlaceholderTitle.text = "Cài Đặt Hệ Thống"
                 txtPlaceholderDesc.text = "Tùy chỉnh thông tin cá nhân, cấu hình ngưỡng cảnh báo khẩn cấp và thiết lập tài khoản."
             }
+        }
+    }
+
+    private fun updateSafetyCard(
+        status: com.example.safehome.data.remote.StatusDataDto?,
+        lastUpdateTime: String?,
+        isOffline: Boolean,
+        hasNoDevices: Boolean = false
+    ) {
+        val cardSafetyBadge = findViewByName<com.google.android.material.card.MaterialCardView>("cardSafetyBadge")
+        val txtSafetyBadge = findViewByName<TextView>("txtSafetyBadge")
+        val txtSafetyMessage = findViewByName<TextView>("txtSafetyMessage")
+        val txtSafetyScore = findViewByName<TextView>("txtSafetyScore")
+        val txtSafetyLastUpdated = findViewByName<TextView>("txtSafetyLastUpdated")
+
+        if (hasNoDevices) {
+            txtSafetyBadge?.text = "✕ NO DEVICE"
+            txtSafetyBadge?.setTextColor(android.graphics.Color.parseColor("#475569"))
+            cardSafetyBadge?.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F1F5F9")))
+            
+            txtSafetyMessage?.text = "Chưa liên kết thiết bị"
+            txtSafetyScore?.text = "--%"
+            txtSafetyScore?.setTextColor(android.graphics.Color.parseColor("#64748B"))
+            txtSafetyLastUpdated?.text = "Chưa kết nối"
+            return
+        }
+
+        if (status == null || isOffline) {
+            txtSafetyBadge?.text = "✕ OFFLINE"
+            txtSafetyBadge?.setTextColor(android.graphics.Color.parseColor("#475569"))
+            cardSafetyBadge?.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F1F5F9")))
+            
+            txtSafetyMessage?.text = "Mất kết nối với thiết bị"
+            txtSafetyScore?.text = "--%"
+            txtSafetyScore?.setTextColor(android.graphics.Color.parseColor("#64748B"))
+            txtSafetyLastUpdated?.text = "Ngoại tuyến"
+            return
+        }
+
+        val systemStatus = status.system
+        val isSafe = systemStatus == "SAFE"
+        val isWarning = systemStatus == "WARNING"
+        val isDanger = systemStatus == "DANGER"
+
+        txtSafetyBadge?.text = when {
+            isSafe -> "✓ SAFE"
+            isWarning -> "⚠ WARNING"
+            isDanger -> "✕ DANGER"
+            else -> "? UNKNOWN"
+        }
+
+        val badgeTextColor = when {
+            isSafe -> "#065F46"
+            isWarning -> "#92400E"
+            isDanger -> "#991B1B"
+            else -> "#475569"
+        }
+        txtSafetyBadge?.setTextColor(android.graphics.Color.parseColor(badgeTextColor))
+
+        val badgeBgColor = when {
+            isSafe -> "#D1FAE5"
+            isWarning -> "#FEF3C7"
+            isDanger -> "#FEE2E2"
+            else -> "#F1F5F9"
+        }
+        cardSafetyBadge?.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor(badgeBgColor)))
+
+        txtSafetyMessage?.text = when {
+            isSafe -> "Nhà của bạn đang được bảo vệ"
+            isWarning -> "Hệ thống ghi nhận cảnh báo"
+            isDanger -> "Cảnh báo nguy hiểm khẩn cấp!"
+            else -> "Trạng thái không xác định"
+        }
+
+        val score = when (systemStatus) {
+            "SAFE" -> 98
+            "WARNING" -> 65
+            "DANGER" -> 25
+            else -> 50
+        }
+        txtSafetyScore?.text = "$score%"
+        
+        val scoreColor = when {
+            isSafe -> "#10B981"
+            isWarning -> "#F59E0B"
+            isDanger -> "#EF4444"
+            else -> "#64748B"
+        }
+        txtSafetyScore?.setTextColor(android.graphics.Color.parseColor(scoreColor))
+
+        txtSafetyLastUpdated?.text = "Cập nhật ${formatTimeAgo(lastUpdateTime)}"
+    }
+
+    private fun formatTimeAgo(isoString: String?): String {
+        if (isoString.isNullOrBlank()) return "chưa cập nhật"
+        return try {
+            val createdInstant = java.time.Instant.parse(isoString)
+            val now = java.time.Instant.now()
+            val diffSeconds = java.time.Duration.between(createdInstant, now).seconds
+            val absSeconds = java.lang.Math.abs(diffSeconds)
+            when {
+                absSeconds < 60 -> "$absSeconds giây trước"
+                absSeconds < 3600 -> "${absSeconds / 60} phút trước"
+                absSeconds < 86400 -> "${absSeconds / 3600} giờ trước"
+                else -> "${absSeconds / 86400} ngày trước"
+            }
+        } catch (e: Exception) {
+            "vừa xong"
         }
     }
 
