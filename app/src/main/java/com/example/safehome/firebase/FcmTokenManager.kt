@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import com.example.safehome.data.local.TokenManager
+import com.example.safehome.data.local.SettingsPreferences
 import com.example.safehome.data.remote.RetrofitClient
 import com.example.safehome.data.repository.NotificationRepository
 import com.google.firebase.messaging.FirebaseMessaging
@@ -17,6 +18,7 @@ class FcmTokenManager(
 ) {
 
     private val tokenManager = TokenManager(context.applicationContext)
+    private val settingsPreferences = SettingsPreferences(context.applicationContext)
     private val notificationRepository: NotificationRepository by lazy {
         val notificationApi = RetrofitClient.createNotificationApi(tokenManager)
         val fcmApi = RetrofitClient.createFcmApi(tokenManager)
@@ -24,6 +26,10 @@ class FcmTokenManager(
     }
 
     suspend fun syncTokenIfLoggedIn() {
+        if (!settingsPreferences.isNotificationEnabled()) {
+            Log.d(TAG, "Notifications are disabled, skip FCM sync")
+            return
+        }
         val token = getFirebaseTokenOrNull()
         if (token.isNullOrBlank()) {
             Log.w(TAG, "FCM token is empty, skip register")
@@ -34,6 +40,10 @@ class FcmTokenManager(
     }
 
     suspend fun registerTokenIfLoggedIn(token: String) {
+        if (!settingsPreferences.isNotificationEnabled()) {
+            Log.d(TAG, "Notifications are disabled, skip FCM register")
+            return
+        }
         val accessToken = tokenManager.getAccessToken()
         if (accessToken.isNullOrBlank()) {
             Log.d(TAG, "FCM token available but user is not logged in yet")

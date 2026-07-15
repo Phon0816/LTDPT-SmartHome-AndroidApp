@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/safehome_background"
+    android:orientation="vertical">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:padding="16dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="Quay lại"
+            app:backgroundTint="@color/safehome_card_white"
+            app:icon="@drawable/ic_back"
+            app:iconTint="@color/safehome_text_dark" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:text="Cài đặt" android:textColor="@color/safehome_text_dark" android:textSize="24sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:paddingStart="16dp" android:paddingEnd="16dp" android:paddingBottom="24dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+            <ProgressBar android:id="@+id/progressLoading" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:layout_marginBottom="16dp" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_settings_card" android:gravity="center_vertical" android:orientation="horizontal" android:padding="20dp">
+                <TextView android:id="@+id/txtAvatar" android:layout_width="60dp" android:layout_height="60dp" android:background="@drawable/bg_soft_blue_circle" android:gravity="center" android:textColor="@color/safehome_blue_deep" android:textSize="20sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/txtProfileName" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/safehome_text_dark" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/txtProfileEmail" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="@color/safehome_text_muted" android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:layout_marginBottom="8dp" android:text="THÔNG BÁO" android:textColor="@color/safehome_text_muted" android:textSize="12sp" android:textStyle="bold" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_settings_card" android:gravity="center_vertical" android:orientation="horizontal" android:padding="20dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Thông báo an toàn" android:textColor="@color/safehome_text_dark" android:textSize="16sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/txtNotificationStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="@color/safehome_text_muted" android:textSize="13sp" />
+                </LinearLayout>
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchNotifications" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textOn="" android:textOff="" app:useMaterialThemeColors="true" />
+            </LinearLayout>
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnOpenNotificationSettings" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginTop="8dp" android:text="Mở cài đặt hệ thống" android:textAllCaps="false" android:textColor="@color/safehome_blue_deep" app:backgroundTint="@color/safehome_blue_soft" app:cornerRadius="14dp" />
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:layout_marginBottom="8dp" android:text="GIỚI THIỆU" android:textColor="@color/safehome_text_muted" android:textSize="12sp" android:textStyle="bold" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_settings_card" android:gravity="center_vertical" android:orientation="horizontal" android:padding="20dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Phiên bản ứng dụng" android:textColor="@color/safehome_text_dark" android:textSize="16sp" />
+                <TextView android:id="@+id/txtAppVersion" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/safehome_text_muted" android:textSize="14sp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnLogout" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="32dp" android:text="Đăng xuất" android:textAllCaps="false" android:textSize="16sp" android:textStyle="bold" app:backgroundTint="@color/safehome_primary_blue" app:cornerRadius="18dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
