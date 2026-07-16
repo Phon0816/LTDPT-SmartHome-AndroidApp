@@ -25,5 +25,11 @@ data class UserDto(
     val fullName: String,
     val email: String,
     val role: String,
+    val avatar: String? = null,
     val createdAt: String
+)
+
+data class ChangePasswordRequest(
+    val oldPassword: String,
+    val newPassword: String
 )
