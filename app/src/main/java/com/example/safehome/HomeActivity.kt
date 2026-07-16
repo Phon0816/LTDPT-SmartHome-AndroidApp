@@ -28,6 +28,7 @@ import com.example.safehome.data.repository.DeviceRepository
 import com.example.safehome.ui.device.DeviceAdapter
 import com.example.safehome.ui.device.DeviceDetailActivity
 import com.example.safehome.ui.notification.NotificationActivity
+import com.example.safehome.ui.settings.SettingsActivity
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 
@@ -347,7 +348,9 @@ class HomeActivity : AppCompatActivity() {
             val intent = Intent(this, NotificationActivity::class.java)
             startActivity(intent)
         }
-        layoutTabSettings?.setOnClickListener { selectTab(4) }
+        layoutTabSettings?.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
         btnPlaceholderAction?.setOnClickListener { selectTab(0) }
     }
 
@@ -449,6 +452,11 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun selectTab(tabIndex: Int) {
+        if (tabIndex == 4) {
+            startActivity(Intent(this, SettingsActivity::class.java))
+            return
+        }
+
         val viewHomeActiveBg = findViewById<View>(R.id.viewHomeActiveBg) ?: return
         val viewMonitorActiveBg = findViewById<View>(R.id.viewMonitorActiveBg) ?: return
         val viewDevicesActiveBg = findViewById<View>(R.id.viewDevicesActiveBg) ?: return
