@@ -5,6 +5,11 @@ import com.example.safehome.data.remote.AuthApi
 import com.example.safehome.data.remote.LoginRequest
 import com.example.safehome.data.remote.RegisterRequest
 import com.example.safehome.data.remote.UserDto
+import com.example.safehome.data.remote.ChangePasswordRequest
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 data class AuthActionResult(
     val success: Boolean,
@@ -77,6 +82,62 @@ class AuthRepository(
             }
         } catch (e: Exception) {
             null
+        }
+    }
+
+    suspend fun updateProfile(fullName: String?, avatarFile: java.io.File?): AuthActionResult {
+        return try {
+            val namePart = fullName?.let {
+                MultipartBody.Part.createFormData("fullName", it)
+            }
+            val avatarPart = avatarFile?.let {
+                val requestFile = RequestBody.create(
+                    "image/*".toMediaTypeOrNull(),
+                    it
+                )
+                MultipartBody.Part.createFormData("avatar", it.name, requestFile)
+            }
+
+            val response = authApi.updateProfile(namePart, avatarPart)
+            if (response.isSuccessful) {
+                AuthActionResult(true, "Cập nhật thông tin thành công")
+            } else {
+                AuthActionResult(false, "Cập nhật thất bại: code ${response.code()}")
+            }
+        } catch (e: Exception) {
+            AuthActionResult(false, "Lỗi kết nối: ${e.message}")
+        }
+    }
+
+    suspend fun changePassword(oldPass: String, newPass: String): AuthActionResult {
+        return try {
+            val response = authApi.changePassword(ChangePasswordRequest(oldPass, newPass))
+            if (response.isSuccessful) {
+                AuthActionResult(true, "Thay đổi mật khẩu thành công")
+            } else {
+                val errorMsg = when (response.code()) {
+                    400 -> "Mật khẩu cũ và mới không hợp lệ"
+                    401 -> "Mật khẩu cũ không chính xác"
+                    else -> "Thay đổi mật khẩu thất bại"
+                }
+                AuthActionResult(false, errorMsg)
+            }
+        } catch (e: Exception) {
+            AuthActionResult(false, "Lỗi kết nối: ${e.message}")
+        }
+    }
+
+    suspend fun deleteAccount(): AuthActionResult {
+        return try {
+            val response = authApi.deleteAccount()
+            if (response.isSuccessful) {
+                tokenManager.clearAccessToken()
+                AuthActionResult(true, "Xóa tài khoản thành công")
+            } else {
+                AuthActionResult(false, "Không thể xóa tài khoản: code ${response.code()}")
+            }
+        } catch (e: Exception) {
+            AuthActionResult(false, "Lỗi kết nối: ${e.message}")
         }
     }
 

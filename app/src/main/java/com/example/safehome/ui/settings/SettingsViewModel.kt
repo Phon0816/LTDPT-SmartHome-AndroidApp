@@ -16,7 +16,14 @@ data class SettingsUiState(
     val isUpdatingNotifications: Boolean = false,
     val isLoggingOut: Boolean = false,
     val errorMessage: String? = null,
-    val logoutCompleted: Boolean = false
+    val logoutCompleted: Boolean = false,
+    val deviceCount: Int = 0,
+    val unreadNotificationsCount: Int = 0,
+    val isUpdatingProfile: Boolean = false,
+    val profileUpdateSuccessMessage: String? = null,
+    val passwordChangeSuccessMessage: String? = null,
+    val isDeletingAccount: Boolean = false,
+    val accountDeleteCompleted: Boolean = false
 )
 
 class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
@@ -27,13 +34,17 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
 
     fun loadSettings() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, profileUpdateSuccessMessage = null, passwordChangeSuccessMessage = null)
             val user = repository.getCurrentUser()
             val enabled = repository.isNotificationEnabled()
+            val deviceCount = repository.getDeviceCount()
+            val unreadCount = repository.getUnreadCount()
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
                 user = user,
                 notificationEnabled = enabled,
+                deviceCount = deviceCount,
+                unreadNotificationsCount = unreadCount,
                 errorMessage = if (user == null) "Không thể tải thông tin tài khoản" else null
             )
         }
@@ -61,11 +72,75 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         }
     }
 
+    fun updateProfile(fullName: String?, avatarFile: java.io.File?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isUpdatingProfile = true, errorMessage = null, profileUpdateSuccessMessage = null)
+            val result = repository.updateProfile(fullName, avatarFile)
+            if (result.success) {
+                val user = repository.getCurrentUser()
+                _uiState.value = _uiState.value.copy(
+                    isUpdatingProfile = false,
+                    user = user,
+                    profileUpdateSuccessMessage = result.message
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isUpdatingProfile = false,
+                    errorMessage = result.message
+                )
+            }
+        }
+    }
+
+    fun changePassword(oldPass: String, newPass: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, passwordChangeSuccessMessage = null)
+            val result = repository.changePassword(oldPass, newPass)
+            if (result.success) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    passwordChangeSuccessMessage = result.message
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = result.message
+                )
+            }
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isDeletingAccount = true, errorMessage = null)
+            val result = repository.deleteAccount()
+            if (result.success) {
+                _uiState.value = _uiState.value.copy(
+                    isDeletingAccount = false,
+                    accountDeleteCompleted = true
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isDeletingAccount = false,
+                    errorMessage = result.message
+                )
+            }
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoggingOut = true, errorMessage = null)
             repository.logout()
             _uiState.value = _uiState.value.copy(isLoggingOut = false, logoutCompleted = true)
         }
+    }
+
+    fun clearMessages() {
+        _uiState.value = _uiState.value.copy(
+            errorMessage = null,
+            profileUpdateSuccessMessage = null,
+            passwordChangeSuccessMessage = null
+        )
     }
 }
