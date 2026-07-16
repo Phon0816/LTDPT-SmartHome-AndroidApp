@@ -24,6 +24,9 @@ object RetrofitClient {
     private fun createRetrofit(tokenManager: TokenManager): Retrofit {
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(AuthInterceptor(tokenManager))
+            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
         return Retrofit.Builder()

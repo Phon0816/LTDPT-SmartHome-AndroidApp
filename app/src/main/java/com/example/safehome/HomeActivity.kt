@@ -46,6 +46,16 @@ import com.example.safehome.ui.notification.NotificationViewModelFactory
 import com.example.safehome.ui.notification.NotificationAdapter
 import com.google.android.material.button.MaterialButton
 import com.github.mikephil.charting.charts.LineChart
+import androidx.core.content.ContextCompat
+import com.example.safehome.ui.settings.SettingsViewModel
+import com.example.safehome.ui.settings.SettingsViewModelFactory
+import com.example.safehome.ui.settings.SettingsUiState
+import com.example.safehome.data.repository.SettingsRepository
+import com.example.safehome.data.local.SettingsPreferences
+import com.google.android.material.materialswitch.MaterialSwitch
+import android.content.pm.PackageManager
+import android.widget.ImageView
+import android.provider.Settings
 import kotlinx.coroutines.launch
 
 class HomeActivity : AppCompatActivity() {
@@ -54,6 +64,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var homeViewModel: HomeViewModel
     private lateinit var monitorViewModel: MonitorViewModel
     private lateinit var notificationViewModel: NotificationViewModel
+    private lateinit var settingsViewModel: SettingsViewModel
     private lateinit var fcmTokenManager: FcmTokenManager
     private var txtStatus: TextView? = null
     private var txtName: TextView? = null
@@ -71,15 +82,31 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var recentHistoryAdapter: RecentHistoryAdapter
     private lateinit var monitorDeviceSimpleAdapter: MonitorDeviceSimpleAdapter
 
+    private lateinit var notificationSwitch: MaterialSwitch
+    private var applyingState = false
+    private var currentTabIndex = 0
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        if (!isGranted) {
+        if (isGranted) {
+            if (::settingsViewModel.isInitialized) {
+                settingsViewModel.syncNotificationsAfterPermissionGranted()
+            }
+        } else {
             Toast.makeText(
                 this,
                 "Bạn có thể bật thông báo trong cài đặt ứng dụng",
                 Toast.LENGTH_SHORT
             ).show()
+        }
+    }
+
+    private val pickImageLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            processAndUploadAvatar(it)
         }
     }
 
@@ -91,6 +118,7 @@ class HomeActivity : AppCompatActivity() {
         homeViewModel = createHomeViewModel()
         monitorViewModel = createMonitorViewModel()
         notificationViewModel = createNotificationViewModel()
+        settingsViewModel = createSettingsViewModel()
         fcmTokenManager = FcmTokenManager(applicationContext)
 
         txtStatus = findViewByName("txtStatus")
@@ -122,8 +150,7 @@ class HomeActivity : AppCompatActivity() {
         val bellContainer = findViewByName<View>("bellContainer")
         bellContainer?.setOnClickListener {
             notificationBadge?.visibility = View.GONE
-            val intent = Intent(this, NotificationActivity::class.java)
-            startActivity(intent)
+            selectTab(3)
         }
 
         // Gán dữ liệu cho 5 ô cảm biến tĩnh (tìm động bằng ID tránh crash khi người dùng đang kéo thả thiết kế)
@@ -149,6 +176,7 @@ class HomeActivity : AppCompatActivity() {
 
         setupDevicesTabContent()
         setupMonitorTabContent()
+        setupSettingsTabContent()
 
         lifecycleScope.launch {
             authViewModel.uiState.collect { state ->
@@ -371,22 +399,14 @@ class HomeActivity : AppCompatActivity() {
         val layoutTabDevices = findViewById<View>(R.id.layoutTabDevices)
         val layoutTabAlerts = findViewById<View>(R.id.layoutTabAlerts)
         val layoutTabSettings = findViewById<View>(R.id.layoutTabSettings)
-        val btnPlaceholderAction = findViewById<View>(R.id.btnPlaceholderAction)
-
         val tabToSelect = intent.getIntExtra("SELECT_TAB", 0)
         selectTab(tabToSelect)
 
         layoutTabHome?.setOnClickListener { selectTab(0) }
         layoutTabMonitor?.setOnClickListener { selectTab(1) }
         layoutTabDevices?.setOnClickListener { selectTab(2) }
-        layoutTabAlerts?.setOnClickListener {
-            val intent = Intent(this, NotificationActivity::class.java)
-            startActivity(intent)
-        }
-        layoutTabSettings?.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
-        btnPlaceholderAction?.setOnClickListener { selectTab(0) }
+        layoutTabAlerts?.setOnClickListener { selectTab(3) }
+        layoutTabSettings?.setOnClickListener { selectTab(4) }
     }
 
     private fun createAuthViewModel(): AuthViewModel {
@@ -487,6 +507,7 @@ class HomeActivity : AppCompatActivity() {
     private fun setupNotificationsTabContent() {
         val recyclerNotificationsTab = findViewById<RecyclerView>(R.id.recyclerNotificationsTab)
         val btnNotificationsRetry = findViewById<MaterialButton>(R.id.btnNotificationsRetry)
+        val btnMarkAllRead = findViewById<MaterialButton>(R.id.btnMarkAllRead)
 
         notificationsTabAdapter = NotificationAdapter { item ->
             notificationViewModel.markAsRead(item)
@@ -497,6 +518,10 @@ class HomeActivity : AppCompatActivity() {
 
         btnNotificationsRetry?.setOnClickListener {
             notificationViewModel.loadNotifications()
+        }
+
+        btnMarkAllRead?.setOnClickListener {
+            notificationViewModel.markAllAsRead()
         }
 
         lifecycleScope.launch {
@@ -512,12 +537,16 @@ class HomeActivity : AppCompatActivity() {
         val layoutError = findViewById<View>(R.id.layoutNotificationsError)
         val txtError = findViewById<TextView>(R.id.txtNotificationsError)
         val recyclerNotificationsTab = findViewById<RecyclerView>(R.id.recyclerNotificationsTab)
+        val btnMarkAllRead = findViewById<MaterialButton>(R.id.btnMarkAllRead)
 
         progressLoading?.visibility = if (state.isLoading) View.VISIBLE else View.GONE
         layoutEmpty?.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
         layoutError?.visibility = if (state.errorMessage != null) View.VISIBLE else View.GONE
         txtError?.text = state.errorMessage
         recyclerNotificationsTab?.visibility = if (!state.isLoading && state.notifications.isNotEmpty()) View.VISIBLE else View.GONE
+
+        btnMarkAllRead?.isEnabled = state.hasUnread && !state.isLoading && !state.isRefreshing
+        btnMarkAllRead?.alpha = if (btnMarkAllRead?.isEnabled == true) 1f else 0.45f
 
         notificationsTabAdapter.submitNotifications(state.notifications)
     }
@@ -1218,10 +1247,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun selectTab(tabIndex: Int) {
-        if (tabIndex == 4) {
-            startActivity(Intent(this, SettingsActivity::class.java))
-            return
-        }
+        if (tabIndex < 0 || tabIndex > 4) return
 
         val viewHomeActiveBg = findViewById<View>(R.id.viewHomeActiveBg) ?: return
         val viewMonitorActiveBg = findViewById<View>(R.id.viewMonitorActiveBg) ?: return
@@ -1241,17 +1267,13 @@ class HomeActivity : AppCompatActivity() {
         val txtTabAlerts = findViewById<TextView>(R.id.txtTabAlerts) ?: return
         val txtTabSettings = findViewById<TextView>(R.id.txtTabSettings) ?: return
 
-        val homeScrollView = findViewById<View>(R.id.homeScrollView) ?: return
-        val layoutPlaceholderContent = findViewById<View>(R.id.layoutPlaceholderContent) ?: return
-        val layoutMonitorTabContent = findViewById<View>(R.id.layoutMonitorTabContent) ?: return
-        val layoutDevicesTabContent = findViewById<View>(R.id.layoutDevicesTabContent) ?: return
-        val layoutNotificationsTabContent = findViewById<View>(R.id.layoutNotificationsTabContent) ?: return
-        val cardPlaceholderPanel = findViewById<View>(R.id.cardPlaceholderPanel) ?: return
-        val btnNotifications = findViewById<View>(R.id.btnNotifications) ?: return
-        val btnLogout = findViewById<View>(R.id.btnLogout) ?: return
-        val imgPlaceholderIcon = findViewById<android.widget.ImageView>(R.id.imgPlaceholderIcon) ?: return
-        val txtPlaceholderTitle = findViewById<TextView>(R.id.txtPlaceholderTitle) ?: return
-        val txtPlaceholderDesc = findViewById<TextView>(R.id.txtPlaceholderDesc) ?: return
+        val tabViews = arrayOf(
+            findViewById<View>(R.id.homeScrollView),
+            findViewById<View>(R.id.layoutMonitorTabContent),
+            findViewById<View>(R.id.layoutDevicesTabContent),
+            findViewById<View>(R.id.layoutNotificationsTabContent),
+            findViewById<View>(R.id.layoutSettingsTabContent)
+        )
 
         val blueDeepColor = android.graphics.Color.parseColor("#2563EB")
         val textMutedColor = android.graphics.Color.parseColor("#64748B")
@@ -1281,32 +1303,18 @@ class HomeActivity : AppCompatActivity() {
         txtTabAlerts.setTypeface(null, android.graphics.Typeface.NORMAL)
         txtTabSettings.setTypeface(null, android.graphics.Typeface.NORMAL)
 
-        layoutMonitorTabContent.visibility = View.GONE
-        layoutDevicesTabContent.visibility = View.GONE
-        layoutNotificationsTabContent.visibility = View.GONE
-        cardPlaceholderPanel.visibility = View.VISIBLE
-        btnNotifications.visibility = View.VISIBLE
-        btnLogout.visibility = View.VISIBLE
-
         when (tabIndex) {
             0 -> {
                 viewHomeActiveBg.visibility = View.VISIBLE
                 imgTabHome.setColorFilter(blueDeepColor)
                 txtTabHome.setTextColor(blueDeepColor)
                 txtTabHome.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                homeScrollView.visibility = View.VISIBLE
-                layoutPlaceholderContent.visibility = View.GONE
             }
             1 -> {
                 viewMonitorActiveBg.visibility = View.VISIBLE
                 imgTabMonitor.setColorFilter(blueDeepColor)
                 txtTabMonitor.setTextColor(blueDeepColor)
                 txtTabMonitor.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                homeScrollView.visibility = View.GONE
-                layoutPlaceholderContent.visibility = View.GONE
-                layoutMonitorTabContent.visibility = View.VISIBLE
 
                 // Force update to show device list
                 updateMonitorState(monitorViewModel.uiState.value)
@@ -1316,39 +1324,81 @@ class HomeActivity : AppCompatActivity() {
                 imgTabDevices.setColorFilter(blueDeepColor)
                 txtTabDevices.setTextColor(blueDeepColor)
                 txtTabDevices.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                homeScrollView.visibility = View.GONE
-                layoutPlaceholderContent.visibility = View.VISIBLE
-                layoutDevicesTabContent.visibility = View.VISIBLE
-                cardPlaceholderPanel.visibility = View.GONE
-                btnNotifications.visibility = View.GONE
-                btnLogout.visibility = View.GONE
             }
             3 -> {
                 viewAlertsActiveBg.visibility = View.VISIBLE
                 imgTabAlerts.setColorFilter(blueDeepColor)
                 txtTabAlerts.setTextColor(blueDeepColor)
                 txtTabAlerts.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                homeScrollView.visibility = View.GONE
-                layoutPlaceholderContent.visibility = View.GONE
-                layoutNotificationsTabContent.visibility = View.VISIBLE
-                cardPlaceholderPanel.visibility = View.GONE
-                btnNotifications.visibility = View.GONE
-                btnLogout.visibility = View.GONE
             }
             4 -> {
                 viewSettingsActiveBg.visibility = View.VISIBLE
                 imgTabSettings.setColorFilter(blueDeepColor)
                 txtTabSettings.setTextColor(blueDeepColor)
                 txtTabSettings.setTypeface(null, android.graphics.Typeface.BOLD)
+                if (::settingsViewModel.isInitialized) {
+                    settingsViewModel.loadSettings()
+                }
+            }
+        }
 
-                homeScrollView.visibility = View.GONE
-                layoutPlaceholderContent.visibility = View.VISIBLE
+        switchTabWithAnimation(currentTabIndex, tabIndex, tabViews)
+        currentTabIndex = tabIndex
+    }
 
-                imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_settings)
-                txtPlaceholderTitle.text = "Cài Đặt Hệ Thống"
-                txtPlaceholderDesc.text = "Tùy chỉnh thông tin cá nhân, cấu hình ngưỡng cảnh báo khẩn cấp và thiết lập tài khoản."
+    private fun switchTabWithAnimation(oldIndex: Int, newIndex: Int, tabViews: Array<View?>) {
+        if (oldIndex == newIndex) {
+            tabViews[newIndex]?.visibility = View.VISIBLE
+            tabViews[newIndex]?.translationX = 0f
+            tabViews[newIndex]?.alpha = 1f
+            // Hide other tabs
+            tabViews.forEachIndexed { i, view ->
+                if (i != newIndex) view?.visibility = View.GONE
+            }
+            return
+        }
+
+        val oldView = tabViews.getOrNull(oldIndex)
+        val newView = tabViews.getOrNull(newIndex) ?: return
+
+        val screenWidth = resources.displayMetrics.widthPixels.toFloat()
+        val direction = if (newIndex > oldIndex) 1f else -1f
+        val startTranslation = direction * screenWidth
+        val endTranslation = -direction * screenWidth
+
+        // Animate outgoing view out
+        oldView?.let { v ->
+            v.animate().cancel()
+            v.animate()
+                .translationX(endTranslation)
+                .alpha(0f)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .withEndAction {
+                    v.visibility = View.GONE
+                    v.translationX = 0f
+                }
+                .start()
+        }
+
+        // Prepare and animate incoming view in
+        newView.translationX = startTranslation
+        newView.alpha = 0f
+        newView.visibility = View.VISIBLE
+        newView.animate().cancel()
+        newView.animate()
+            .translationX(0f)
+            .alpha(1f)
+            .setDuration(250)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
+
+        // Ensure all other views are GONE and reset to 0 translation
+        tabViews.forEachIndexed { i, view ->
+            if (i != oldIndex && i != newIndex) {
+                view?.visibility = View.GONE
+                view?.translationX = 0f
+                view?.alpha = 1f
             }
         }
     }
@@ -1460,5 +1510,320 @@ class HomeActivity : AppCompatActivity() {
             "vừa xong"
         }
     }
+
+    // --- INTEGRATED SETTINGS HANDLERS ---
+
+    private fun createSettingsViewModel(): SettingsViewModel {
+        val appContext = applicationContext
+        val tokenManager = TokenManager(appContext)
+        val authApi = RetrofitClient.createAuthApi(tokenManager)
+        val authRepository = AuthRepository(authApi, tokenManager)
+        
+        val deviceApi = RetrofitClient.createDeviceApi(tokenManager)
+        val deviceRepository = DeviceRepository(deviceApi)
+        
+        val notificationApi = RetrofitClient.createNotificationApi(tokenManager)
+        val fcmApi = RetrofitClient.createFcmApi(tokenManager)
+        val notificationRepository = NotificationRepository(notificationApi, fcmApi)
+        
+        val repository = SettingsRepository(
+            authRepository = authRepository,
+            deviceRepository = deviceRepository,
+            notificationRepository = notificationRepository,
+            settingsPreferences = SettingsPreferences(appContext),
+            fcmTokenManager = FcmTokenManager(appContext)
+        )
+        return ViewModelProvider(this, SettingsViewModelFactory(repository))[SettingsViewModel::class.java]
+    }
+
+    private fun setupSettingsTabContent() {
+        notificationSwitch = findViewById(R.id.switchNotifications) ?: return
+        val txtAppVersion = findViewById<TextView>(R.id.txtAppVersion)
+        val btnOpenNotificationSettings = findViewById<View>(R.id.btnOpenNotificationSettings)
+
+        txtAppVersion?.text = try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0.0"
+        } catch (e: Exception) {
+            "1.0.0"
+        }
+
+        btnOpenNotificationSettings?.setOnClickListener {
+            openSystemNotificationSettings()
+        }
+
+        findViewById<View>(R.id.layoutAvatarContainer)?.setOnClickListener {
+            pickImageLauncher.launch("image/*")
+        }
+
+        findViewById<View>(R.id.btnEditName)?.setOnClickListener {
+            val currentName = settingsViewModel.uiState.value.user?.fullName ?: ""
+            showEditNameDialog(currentName)
+        }
+
+        findViewById<View>(R.id.layoutManageDevices)?.setOnClickListener {
+            selectTab(2)
+        }
+
+        findViewById<View>(R.id.layoutAlertShortcut)?.setOnClickListener {
+            selectTab(3)
+        }
+
+        findViewById<View>(R.id.btnChangePassword)?.setOnClickListener {
+            showChangePasswordDialog()
+        }
+
+        findViewById<View>(R.id.btnDeleteAccount)?.setOnClickListener {
+            showDeleteAccountDialog()
+        }
+
+        findViewById<View>(R.id.btnPrivacyPolicy)?.setOnClickListener { showPrivacyPolicyDialog() }
+        findViewById<View>(R.id.btnTerms)?.setOnClickListener { showTermsDialog() }
+
+        notificationSwitch.setOnCheckedChangeListener { _, enabled ->
+            if (applyingState) return@setOnCheckedChangeListener
+            if (enabled && !hasNotificationPermission()) {
+                settingsViewModel.setNotificationsEnabled(true, canSyncFcm = false)
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                settingsViewModel.setNotificationsEnabled(enabled, canSyncFcm = enabled)
+            }
+        }
+
+        lifecycleScope.launch {
+            settingsViewModel.uiState.collect { state ->
+                renderSettings(state)
+            }
+        }
+    }
+
+    private fun renderSettings(state: SettingsUiState) {
+        findViewById<View>(R.id.progressSettingsLoading)?.visibility = if (state.isLoading || state.isUpdatingProfile || state.isDeletingAccount) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.txtProfileName)?.text = state.user?.fullName ?: "Tài khoản SafeHome"
+        findViewById<TextView>(R.id.txtProfileEmail)?.text = state.user?.email ?: "Không có email"
+        findViewById<TextView>(R.id.txtRole)?.text = state.user?.role ?: "USER"
+
+        val memberSinceText = if (!state.user?.createdAt.isNullOrBlank()) {
+            try {
+                val zonedDateTime = java.time.ZonedDateTime.parse(state.user.createdAt)
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                "Thành viên từ: " + zonedDateTime.format(formatter)
+            } catch (e: Exception) {
+                "Thành viên từ: " + state.user.createdAt.take(10)
+            }
+        } else {
+            "Thành viên từ: --/--/----"
+        }
+        findViewById<TextView>(R.id.txtMemberSince)?.text = memberSinceText
+
+        findViewById<TextView>(R.id.txtDeviceCount)?.text = "${state.deviceCount} thiết bị đã liên kết"
+        findViewById<TextView>(R.id.txtUnreadNotificationCount)?.text = if (state.unreadNotificationsCount > 0) {
+            "Có ${state.unreadNotificationsCount} cảnh báo chưa đọc"
+        } else {
+            "Đã đọc hết cảnh báo"
+        }
+
+        if (!state.user?.avatar.isNullOrBlank()) {
+            loadAvatarImage(state.user.avatar)
+        } else {
+            showInitialsPlaceholder(state.user?.fullName)
+        }
+
+        applyingState = true
+        notificationSwitch.isChecked = state.notificationEnabled
+        applyingState = false
+        notificationSwitch.isEnabled = !state.isUpdatingNotifications && !state.isLoggingOut
+
+        state.errorMessage?.let {
+            Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+            settingsViewModel.clearMessages()
+        }
+
+        state.profileUpdateSuccessMessage?.let {
+            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+            settingsViewModel.clearMessages()
+        }
+
+        state.passwordChangeSuccessMessage?.let {
+            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+            settingsViewModel.clearMessages()
+        }
+
+        if (state.logoutCompleted || state.accountDeleteCompleted) openLogin()
+    }
+
+    private fun showInitialsPlaceholder(fullName: String?) {
+        val txtAvatar = findViewById<TextView>(R.id.txtAvatar) ?: return
+        val imgAvatar = findViewById<ImageView>(R.id.imgAvatar) ?: return
+        txtAvatar.visibility = View.VISIBLE
+        imgAvatar.setImageResource(R.drawable.bg_soft_blue_circle)
+
+        txtAvatar.text = fullName?.trim()?.split(Regex("\\s+"))?.take(2)
+            ?.joinToString("") { it.first().uppercase() } ?: "SH"
+    }
+
+    private fun loadAvatarImage(avatarPath: String) {
+        val fullUrl = "https://smarthome-backend-1-4oly.onrender.com" + avatarPath
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val url = java.net.URL(fullUrl)
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.doInput = true
+                connection.connect()
+                val input = connection.inputStream
+                val bitmap = android.graphics.BitmapFactory.decodeStream(input)
+                lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                    if (bitmap != null) {
+                        findViewById<TextView>(R.id.txtAvatar)?.visibility = View.GONE
+                        findViewById<ImageView>(R.id.imgAvatar)?.setImageBitmap(bitmap)
+                    } else {
+                        showInitialsPlaceholder(settingsViewModel.uiState.value.user?.fullName)
+                    }
+                }
+            } catch (e: Exception) {
+                lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                    showInitialsPlaceholder(settingsViewModel.uiState.value.user?.fullName)
+                }
+            }
+        }
+    }
+
+    private fun processAndUploadAvatar(uri: android.net.Uri) {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val inputStream = contentResolver.openInputStream(uri)
+                val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (originalBitmap == null) {
+                    showToastOnMain("Không thể đọc tệp hình ảnh")
+                    return@launch
+                }
+
+                val resizedBitmap = android.graphics.Bitmap.createScaledBitmap(
+                    originalBitmap, 500, 500, true
+                )
+
+                val tempFile = java.io.File(cacheDir, "temp_avatar.jpg")
+                val outputStream = java.io.FileOutputStream(tempFile)
+                resizedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, outputStream)
+                outputStream.flush()
+                outputStream.close()
+
+                lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                    settingsViewModel.updateProfile(fullName = null, avatarFile = tempFile)
+                }
+            } catch (e: Exception) {
+                showToastOnMain("Lỗi xử lý ảnh: ${e.message}")
+            }
+        }
+    }
+
+    private fun showToastOnMain(message: String) {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            Toast.makeText(this@HomeActivity, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun showEditNameDialog(currentName: String) {
+        val builder = android.app.AlertDialog.Builder(this)
+        builder.setTitle("Đổi họ tên")
+
+        val input = android.widget.EditText(this)
+        input.setText(currentName)
+        input.setSelection(currentName.length)
+        builder.setView(input)
+
+        builder.setPositiveButton("Lưu") { dialog, _ ->
+            val newName = input.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                settingsViewModel.updateProfile(fullName = newName, avatarFile = null)
+            } else {
+                Toast.makeText(this, "Tên không được để trống", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+        builder.setNegativeButton("Hủy") { dialog, _ -> dialog.cancel() }
+        builder.show()
+    }
+
+    private fun showChangePasswordDialog() {
+        val builder = android.app.AlertDialog.Builder(this)
+        builder.setTitle("Đổi mật khẩu")
+
+        val container = android.widget.LinearLayout(this)
+        container.orientation = android.widget.LinearLayout.VERTICAL
+        container.setPadding(48, 24, 48, 24)
+
+        val edtOldPass = android.widget.EditText(this)
+        edtOldPass.hint = "Mật khẩu hiện tại"
+        edtOldPass.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        container.addView(edtOldPass)
+
+        val edtNewPass = android.widget.EditText(this)
+        edtNewPass.hint = "Mật khẩu mới"
+        edtNewPass.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        val params = android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        params.topMargin = 24
+        edtNewPass.layoutParams = params
+        container.addView(edtNewPass)
+
+        builder.setView(container)
+
+        builder.setPositiveButton("Cập nhật") { dialog, _ ->
+            val oldPass = edtOldPass.text.toString().trim()
+            val newPass = edtNewPass.text.toString().trim()
+            if (oldPass.isNotEmpty() && newPass.isNotEmpty()) {
+                settingsViewModel.changePassword(oldPass, newPass)
+            } else {
+                Toast.makeText(this, "Không được để trống các trường", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+        builder.setNegativeButton("Hủy") { dialog, _ -> dialog.cancel() }
+        builder.show()
+    }
+
+    private fun showDeleteAccountDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Xóa tài khoản")
+            .setMessage("Hành động này không thể hoàn tác. Toàn bộ thiết bị liên kết, dữ liệu và thông báo của bạn sẽ bị xóa vĩnh viễn khỏi hệ thống. Bạn có chắc chắn muốn xóa tài khoản?")
+            .setPositiveButton("Xóa vĩnh viễn") { dialog, _ ->
+                settingsViewModel.deleteAccount()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Hủy") { dialog, _ -> dialog.dismiss() }
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .show()
+    }
+
+    private fun showPrivacyPolicyDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Chính sách bảo mật")
+            .setMessage("SafeHome cam kết bảo vệ dữ liệu cá nhân của bạn. Mọi thông tin cảm biến, thông báo và thông tin tài khoản được lưu trữ an toàn trên máy chủ đám mây và chỉ hiển thị cho tài khoản của bạn. Chúng tôi không chia sẻ thông tin với bất kỳ bên thứ ba nào.")
+            .setPositiveButton("Đồng ý", null)
+            .show()
+    }
+
+    private fun showTermsDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Điều khoản dịch vụ")
+            .setMessage("Bằng việc sử dụng SafeHome, bạn đồng ý với các điều khoản kết nối phần cứng an toàn. Bạn chịu trách nhiệm duy trì kết nối mạng ổn định cho các thiết bị giám sát khẩn cấp. Ứng dụng cung cấp các cảnh báo mang tính chất tham khảo, không thay thế hoàn toàn các hệ thống cảnh báo cháy nổ chuyên nghiệp.")
+            .setPositiveButton("Đồng ý", null)
+            .show()
+    }
+
+    private fun hasNotificationPermission(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    private fun openSystemNotificationSettings() {
+        startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        })
+    }
+
+    // --- END INTEGRATED SETTINGS HANDLERS ---
 
 }
