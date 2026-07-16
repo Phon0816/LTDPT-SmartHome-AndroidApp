@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.safehome.R
 import com.example.safehome.data.local.TokenManager
 import com.example.safehome.data.remote.RetrofitClient
@@ -25,16 +26,33 @@ import com.example.safehome.ui.home.ClaimDeviceBottomSheet
 import com.example.safehome.ui.home.HomeViewModel
 import com.example.safehome.ui.home.HomeViewModelFactory
 import com.example.safehome.data.repository.DeviceRepository
+import com.example.safehome.data.repository.NotificationRepository
 import com.example.safehome.ui.device.DeviceAdapter
 import com.example.safehome.ui.device.DeviceDetailActivity
+import com.example.safehome.ui.monitor.MonitorViewModel
+import com.example.safehome.ui.monitor.MonitorViewModelFactory
+import com.example.safehome.ui.monitor.MonitorDeviceAdapter
+import com.example.safehome.ui.monitor.MonitorDeviceSimpleAdapter
+import com.example.safehome.ui.monitor.GasTab
+import com.example.safehome.ui.monitor.TimeFilter
+import com.example.safehome.ui.monitor.FlameTimelineAdapter
+import com.example.safehome.ui.monitor.FlameTimelineAdapter.FlameEvent
+import com.example.safehome.ui.monitor.RecentHistoryAdapter
+import com.example.safehome.ui.monitor.ChartHelper
 import com.example.safehome.ui.notification.NotificationActivity
+import com.example.safehome.ui.notification.NotificationViewModel
+import com.example.safehome.ui.notification.NotificationViewModelFactory
+import com.example.safehome.ui.notification.NotificationAdapter
 import com.google.android.material.button.MaterialButton
+import com.github.mikephil.charting.charts.LineChart
 import kotlinx.coroutines.launch
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var authViewModel: AuthViewModel
     private lateinit var homeViewModel: HomeViewModel
+    private lateinit var monitorViewModel: MonitorViewModel
+    private lateinit var notificationViewModel: NotificationViewModel
     private lateinit var fcmTokenManager: FcmTokenManager
     private var txtStatus: TextView? = null
     private var txtName: TextView? = null
@@ -47,6 +65,10 @@ class HomeActivity : AppCompatActivity() {
     private var hasLoadedDevices = false
     private var requestedFcmSync = false
     private lateinit var devicesTabAdapter: DeviceAdapter
+    private lateinit var notificationsTabAdapter: NotificationAdapter
+    private lateinit var flameTimelineAdapter: FlameTimelineAdapter
+    private lateinit var recentHistoryAdapter: RecentHistoryAdapter
+    private lateinit var monitorDeviceSimpleAdapter: MonitorDeviceSimpleAdapter
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -66,6 +88,8 @@ class HomeActivity : AppCompatActivity() {
 
         authViewModel = createAuthViewModel()
         homeViewModel = createHomeViewModel()
+        monitorViewModel = createMonitorViewModel()
+        notificationViewModel = createNotificationViewModel()
         fcmTokenManager = FcmTokenManager(applicationContext)
 
         txtStatus = findViewByName("txtStatus")
@@ -123,6 +147,7 @@ class HomeActivity : AppCompatActivity() {
         bindStaticSensor("Fire", "N/A", "Chưa kết nối", "#94A3B8")
 
         setupDevicesTabContent()
+        setupMonitorTabContent()
 
         lifecycleScope.launch {
             authViewModel.uiState.collect { state ->
@@ -245,6 +270,32 @@ class HomeActivity : AppCompatActivity() {
                     val flameColor = if (flame) "#EF4444" else "#22C55E"
                     val flameStatusText = if (flame) "Nguy hiểm!" else "Bình thường"
                     bindStaticSensor("Fire", if (flame) "Có lửa!" else "Không", flameStatusText, flameColor)
+
+                    // Cập nhật Safety Score dựa trên system status
+                    val systemStatus = status.system
+                    val safetyScore = when (systemStatus) {
+                        "SAFE" -> 98
+                        "WARNING" -> 65
+                        "DANGER" -> 25
+                        else -> 50
+                    }
+                    val txtSafetyScore = findViewByName<TextView>("txtSafetyScore")
+                    txtSafetyScore?.text = "$safetyScore%"
+                    val scoreColor = when (systemStatus) {
+                        "SAFE" -> "#10B981"
+                        "WARNING" -> "#F59E0B"
+                        "DANGER" -> "#EF4444"
+                        else -> "#64748B"
+                    }
+                    txtSafetyScore?.setTextColor(android.graphics.Color.parseColor(scoreColor))
+
+                    // Cập nhật thời gian last update cho safety card
+                    val txtSafetyLastUpdate = findViewByName<TextView>("txtSafetyLastUpdate")
+                    txtSafetyLastUpdate?.text = if (lastUpdateTime != null) {
+                        "Cập nhật ${formatTimeAgo(lastUpdateTime)}"
+                    } else {
+                        "Chưa cập nhật"
+                    }
                 } else {
                     // Nếu không nhận được tín hiệu mới trong 20 giây -> tự động reset về N/A
                     bindStaticSensor("Temp", "N/A", "Mất kết nối", "#94A3B8")
@@ -253,7 +304,25 @@ class HomeActivity : AppCompatActivity() {
                     bindStaticSensor("Air", "N/A", "Mất kết nối", "#94A3B8")
                     bindStaticSensor("Buzzer", "N/A", "Mất kết nối", "#94A3B8")
                     bindStaticSensor("Fire", "N/A", "Mất kết nối", "#94A3B8")
+
+                    // Reset safety score khi mất kết nối
+                    val txtSafetyScore = findViewByName<TextView>("txtSafetyScore")
+                    txtSafetyScore?.text = "N/A"
+                    txtSafetyScore?.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+
+                    val txtSafetyLastUpdate = findViewByName<TextView>("txtSafetyLastUpdate")
+                    txtSafetyLastUpdate?.text = "Mất kết nối"
                 }
+
+                // Cập nhật tổng số cảm biến
+                val txtSensorCount = findViewByName<TextView>("txtSensorCount")
+                val sensorCount = if (state.devices.isNotEmpty()) {
+                    // Đếm số cảm biến thực tế từ thiết bị active (6 cảm biến: Temp, Humid, Gas, Air, Buzzer, Fire)
+                    6
+                } else {
+                    0
+                }
+                txtSensorCount?.text = "$sensorCount cảm biến"
 
                 // Dynamic Device List Card Population
                 val container = findViewById<android.widget.LinearLayout>(R.id.layoutDeviceListContainer)
@@ -337,10 +406,7 @@ class HomeActivity : AppCompatActivity() {
         layoutTabHome?.setOnClickListener { selectTab(0) }
         layoutTabMonitor?.setOnClickListener { selectTab(1) }
         layoutTabDevices?.setOnClickListener { selectTab(2) }
-        layoutTabAlerts?.setOnClickListener {
-            val intent = Intent(this, NotificationActivity::class.java)
-            startActivity(intent)
-        }
+        layoutTabAlerts?.setOnClickListener { selectTab(3) }
         layoutTabSettings?.setOnClickListener { selectTab(4) }
         btnPlaceholderAction?.setOnClickListener { selectTab(0) }
     }
@@ -399,6 +465,23 @@ class HomeActivity : AppCompatActivity() {
         return ViewModelProvider(this, factory)[HomeViewModel::class.java]
     }
 
+    private fun createMonitorViewModel(): MonitorViewModel {
+        val tokenManager = TokenManager(applicationContext)
+        val deviceApi = RetrofitClient.createDeviceApi(tokenManager)
+        val deviceRepository = DeviceRepository(deviceApi)
+        val factory = MonitorViewModelFactory(deviceRepository)
+        return ViewModelProvider(this, factory)[MonitorViewModel::class.java]
+    }
+
+    private fun createNotificationViewModel(): NotificationViewModel {
+        val tokenManager = TokenManager(applicationContext)
+        val notificationApi = RetrofitClient.createNotificationApi(tokenManager)
+        val fcmApi = RetrofitClient.createFcmApi(tokenManager)
+        val notificationRepository = NotificationRepository(notificationApi, fcmApi)
+        val factory = NotificationViewModelFactory(notificationRepository)
+        return ViewModelProvider(this, factory)[NotificationViewModel::class.java]
+    }
+
     private fun setupDevicesTabContent() {
         val recyclerDevicesTab = findViewById<RecyclerView>(R.id.recyclerDevicesTab)
         val fabAddDeviceTab = findViewById<View>(R.id.fabAddDeviceTab)
@@ -419,6 +502,720 @@ class HomeActivity : AppCompatActivity() {
 
         fabAddDeviceTab?.setOnClickListener { openClaimSheet() }
         btnLinkDeviceTab?.setOnClickListener { openClaimSheet() }
+
+        setupNotificationsTabContent()
+    }
+
+    private fun setupNotificationsTabContent() {
+        val recyclerNotificationsTab = findViewById<RecyclerView>(R.id.recyclerNotificationsTab)
+        val btnNotificationsRetry = findViewById<MaterialButton>(R.id.btnNotificationsRetry)
+
+        notificationsTabAdapter = NotificationAdapter { item ->
+            notificationViewModel.markAsRead(item)
+        }
+
+        recyclerNotificationsTab?.layoutManager = LinearLayoutManager(this)
+        recyclerNotificationsTab?.adapter = notificationsTabAdapter
+
+        btnNotificationsRetry?.setOnClickListener {
+            notificationViewModel.loadNotifications()
+        }
+
+        lifecycleScope.launch {
+            notificationViewModel.uiState.collect { state ->
+                updateNotificationsState(state)
+            }
+        }
+    }
+
+    private fun updateNotificationsState(state: com.example.safehome.ui.notification.NotificationUiState) {
+        val progressLoading = findViewById<View>(R.id.progressNotificationsLoading)
+        val layoutEmpty = findViewById<View>(R.id.layoutNotificationsEmpty)
+        val layoutError = findViewById<View>(R.id.layoutNotificationsError)
+        val txtError = findViewById<TextView>(R.id.txtNotificationsError)
+        val recyclerNotificationsTab = findViewById<RecyclerView>(R.id.recyclerNotificationsTab)
+
+        progressLoading?.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+        layoutEmpty?.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
+        layoutError?.visibility = if (state.errorMessage != null) View.VISIBLE else View.GONE
+        txtError?.text = state.errorMessage
+        recyclerNotificationsTab?.visibility = if (!state.isLoading && state.notifications.isNotEmpty()) View.VISIBLE else View.GONE
+
+        notificationsTabAdapter.submitNotifications(state.notifications)
+    }
+
+    private fun setupMonitorTabContent() {
+        flameTimelineAdapter = FlameTimelineAdapter()
+        recentHistoryAdapter = RecentHistoryAdapter()
+        monitorDeviceSimpleAdapter = MonitorDeviceSimpleAdapter { device ->
+            monitorViewModel.selectDevice(device.id.toString(), device.name)
+        }
+
+        val recyclerFlameTimeline = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerFlameTimeline)
+        val recyclerRecentHistory = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerRecentHistory)
+        val recyclerMonitorDevices = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerMonitorDevices)
+
+        recyclerFlameTimeline?.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        recyclerFlameTimeline?.adapter = flameTimelineAdapter
+
+        recyclerRecentHistory?.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        recyclerRecentHistory?.adapter = recentHistoryAdapter
+
+        recyclerMonitorDevices?.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        recyclerMonitorDevices?.adapter = monitorDeviceSimpleAdapter
+
+        val btnRefresh = findViewById<MaterialButton>(R.id.btnRefresh)
+        btnRefresh?.setOnClickListener {
+            monitorViewModel.refresh()
+        }
+
+        val btnHeaderRefresh = findViewById<MaterialButton>(R.id.btnHeaderRefresh)
+        btnHeaderRefresh?.setOnClickListener {
+            monitorViewModel.refresh()
+        }
+
+        val btnBackToDeviceList = findViewById<android.widget.ImageView>(R.id.btnBackToDeviceList)
+        btnBackToDeviceList?.setOnClickListener {
+            monitorViewModel.clearDeviceSelection()
+        }
+
+        val swipeRefresh = findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.swipeRefreshMonitor)
+        swipeRefresh?.setOnRefreshListener {
+            monitorViewModel.refresh()
+        }
+
+        val gasTabGroup = findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.gasTabGroup)
+        val btnTabMQ2 = findViewById<MaterialButton>(R.id.btnTabMQ2)
+        val btnTabMQ135 = findViewById<MaterialButton>(R.id.btnTabMQ135)
+
+        btnTabMQ2?.setOnClickListener {
+            monitorViewModel.selectGasTab(GasTab.MQ2)
+        }
+
+        btnTabMQ135?.setOnClickListener {
+            monitorViewModel.selectGasTab(GasTab.MQ135)
+        }
+
+        val btnFilter24h = findViewById<MaterialButton>(R.id.btnFilter24h)
+        val btnFilter7d = findViewById<MaterialButton>(R.id.btnFilter7d)
+        val btnFilter30d = findViewById<MaterialButton>(R.id.btnFilter30d)
+
+        btnFilter24h?.setOnClickListener {
+            monitorViewModel.selectTimeFilter(TimeFilter.HOURS_24)
+            updateTimeFilterButtons(TimeFilter.HOURS_24)
+        }
+
+        btnFilter7d?.setOnClickListener {
+            monitorViewModel.selectTimeFilter(TimeFilter.DAYS_7)
+            updateTimeFilterButtons(TimeFilter.DAYS_7)
+        }
+
+        btnFilter30d?.setOnClickListener {
+            monitorViewModel.selectTimeFilter(TimeFilter.DAYS_30)
+            updateTimeFilterButtons(TimeFilter.DAYS_30)
+        }
+
+        lifecycleScope.launch {
+            monitorViewModel.uiState.collect { state ->
+                updateMonitorState(state)
+                swipeRefresh?.isRefreshing = state.isLoading
+                updateTimeFilterButtons(state.selectedTimeFilter)
+            }
+        }
+    }
+
+    private fun updateMonitorState(state: com.example.safehome.ui.monitor.MonitorUiState) {
+        android.util.Log.d("MonitorState", "Updating state: hasNoDevice=${state.hasNoDevice}, isLoading=${state.isLoading}, isEmpty=${state.isEmpty}, deviceId=${state.deviceId}")
+
+        val layoutMonitorLoading = findViewById<View>(R.id.layoutMonitorLoading)
+        val cardMonitorEmpty = findViewById<View>(R.id.cardMonitorEmpty)
+        val layoutMonitorContent = findViewById<View>(R.id.layoutMonitorContent)
+        val layoutDeviceList = findViewById<View>(R.id.layoutDeviceList)
+        val txtEmptyTitle = findViewById<TextView>(R.id.txtEmptyTitle)
+        val txtEmptyDesc = findViewById<TextView>(R.id.txtEmptyDesc)
+        val btnRefresh = findViewById<MaterialButton>(R.id.btnRefresh)
+
+        android.util.Log.d("MonitorState", "Views found: loading=${layoutMonitorLoading != null}, empty=${cardMonitorEmpty != null}, content=${layoutMonitorContent != null}, deviceList=${layoutDeviceList != null}")
+
+        // Check if user has any devices
+        val hasDevices = homeViewModel.uiState.value.devices.isNotEmpty()
+        android.util.Log.d("MonitorState", "User has devices: $hasDevices, device count: ${homeViewModel.uiState.value.devices.size}")
+
+        if (!hasDevices) {
+            android.util.Log.d("MonitorState", "Showing no device state")
+            layoutMonitorLoading?.visibility = View.GONE
+            cardMonitorEmpty?.visibility = View.VISIBLE
+            layoutMonitorContent?.visibility = View.GONE
+            layoutDeviceList?.visibility = View.GONE
+            txtEmptyTitle?.text = "Chưa có thiết bị"
+            txtEmptyDesc?.text = "Thêm thiết bị để bắt đầu giám sát."
+            btnRefresh?.visibility = View.GONE
+            return
+        }
+
+        // Show device list when no device is selected
+        if (state.deviceId == null && !state.isLoading) {
+            android.util.Log.d("MonitorState", "Showing device list")
+            layoutMonitorLoading?.visibility = View.GONE
+            cardMonitorEmpty?.visibility = View.GONE
+            layoutMonitorContent?.visibility = View.GONE
+            layoutDeviceList?.visibility = View.VISIBLE
+            
+            // Update device list with devices from homeViewModel
+            val devices = homeViewModel.uiState.value.devices
+            monitorDeviceSimpleAdapter.submitDevices(devices)
+            return
+        }
+
+        if (state.isLoading) {
+            android.util.Log.d("MonitorState", "Showing loading state")
+            layoutMonitorLoading?.visibility = View.VISIBLE
+            cardMonitorEmpty?.visibility = View.GONE
+            layoutMonitorContent?.visibility = View.GONE
+            layoutDeviceList?.visibility = View.GONE
+            return
+        }
+
+        if (state.errorMessage != null) {
+            android.util.Log.d("MonitorState", "Showing error state: ${state.errorMessage}")
+            Toast.makeText(this, state.errorMessage, Toast.LENGTH_SHORT).show()
+            layoutMonitorLoading?.visibility = View.GONE
+            cardMonitorEmpty?.visibility = View.VISIBLE
+            layoutMonitorContent?.visibility = View.GONE
+            layoutDeviceList?.visibility = View.GONE
+            txtEmptyTitle?.text = "Lỗi tải dữ liệu"
+            txtEmptyDesc?.text = state.errorMessage
+            btnRefresh?.visibility = View.VISIBLE
+            return
+        }
+
+        if (state.isEmpty) {
+            android.util.Log.d("MonitorState", "Showing empty data state")
+            layoutMonitorLoading?.visibility = View.GONE
+            cardMonitorEmpty?.visibility = View.VISIBLE
+            layoutMonitorContent?.visibility = View.GONE
+            layoutDeviceList?.visibility = View.GONE
+            txtEmptyTitle?.text = "Chưa có dữ liệu"
+            txtEmptyDesc?.text = "Thiết bị chưa gửi dữ liệu cảm biến."
+            btnRefresh?.visibility = View.VISIBLE
+            return
+        }
+
+        android.util.Log.d("MonitorState", "Showing content with ${state.history.size} records")
+        layoutMonitorLoading?.visibility = View.GONE
+        cardMonitorEmpty?.visibility = View.GONE
+        layoutMonitorContent?.visibility = View.VISIBLE
+        layoutDeviceList?.visibility = View.GONE
+
+        updateMonitorOverview(state)
+        updateMonitorCharts(state)
+        updateFlameTimeline(state)
+        updateRecentHistory(state)
+    }
+
+    private fun updateMonitorOverview(state: com.example.safehome.ui.monitor.MonitorUiState) {
+        val latestRecord = state.history.firstOrNull() ?: return
+
+        val txtMonitorDeviceName = findViewById<TextView>(R.id.txtMonitorDeviceName)
+        val txtMonitorLastUpdate = findViewById<TextView>(R.id.txtMonitorLastUpdate)
+        val txtMonitorStatus = findViewById<TextView>(R.id.txtMonitorStatus)
+        val cardMonitorStatus = findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardMonitorStatus)
+        val txtMonitorCurrentTemp = findViewById<TextView>(R.id.txtMonitorCurrentTemp)
+        val txtMonitorCurrentHumid = findViewById<TextView>(R.id.txtMonitorCurrentHumid)
+        val txtMonitorCurrentMQ2 = findViewById<TextView>(R.id.txtMonitorCurrentMQ2)
+        val txtMonitorCurrentMQ135 = findViewById<TextView>(R.id.txtMonitorCurrentMQ135)
+
+        txtMonitorDeviceName?.text = state.deviceName ?: "Thiết bị"
+
+        try {
+            val date = java.util.Date(java.time.Instant.parse(latestRecord.createdAt).toEpochMilli())
+            val timeFormat = java.text.SimpleDateFormat("HH:mm dd/MM/yyyy", java.util.Locale.getDefault())
+            txtMonitorLastUpdate?.text = "Cập nhật: ${timeFormat.format(date)}"
+        } catch (e: Exception) {
+            txtMonitorLastUpdate?.text = "Cập nhật: --"
+        }
+
+        val systemStatus = latestRecord.status.system
+        txtMonitorStatus?.text = systemStatus
+
+        when (systemStatus) {
+            "SAFE" -> {
+                cardMonitorStatus?.setCardBackgroundColor(android.graphics.Color.parseColor("#D1FAE5"))
+                txtMonitorStatus?.setTextColor(android.graphics.Color.parseColor("#065F46"))
+            }
+            "WARNING" -> {
+                cardMonitorStatus?.setCardBackgroundColor(android.graphics.Color.parseColor("#FEF3C7"))
+                txtMonitorStatus?.setTextColor(android.graphics.Color.parseColor("#92400E"))
+            }
+            "DANGER" -> {
+                cardMonitorStatus?.setCardBackgroundColor(android.graphics.Color.parseColor("#FEE2E2"))
+                txtMonitorStatus?.setTextColor(android.graphics.Color.parseColor("#991B1B"))
+            }
+            else -> {
+                cardMonitorStatus?.setCardBackgroundColor(android.graphics.Color.parseColor("#F1F5F9"))
+                txtMonitorStatus?.setTextColor(android.graphics.Color.parseColor("#64748B"))
+            }
+        }
+
+        txtMonitorCurrentTemp?.text = "${latestRecord.sensor.temperature}°C"
+        txtMonitorCurrentHumid?.text = "${latestRecord.sensor.humidity}%"
+        txtMonitorCurrentMQ2?.text = String.format("%.0f", (latestRecord.sensor.mq2Raw.toDouble() / 4095.0) * 1000)
+        txtMonitorCurrentMQ135?.text = String.format("%.0f", (latestRecord.sensor.mq135Raw.toDouble() / 4095.0) * 1000)
+    }
+
+    private fun updateMonitorCharts(state: com.example.safehome.ui.monitor.MonitorUiState) {
+        val history = state.history
+        android.util.Log.d("MonitorCharts", "Updating charts with ${history.size} records")
+        if (history.isEmpty()) {
+            android.util.Log.d("MonitorCharts", "History is empty, skipping chart update")
+            return
+        }
+
+        val chartTemperature = findViewById<LineChart>(R.id.chartTemperature)
+        val chartHumidity = findViewById<LineChart>(R.id.chartHumidity)
+        val chartGas = findViewById<LineChart>(R.id.chartGas)
+
+        android.util.Log.d("MonitorCharts", "Chart views found: temp=${chartTemperature != null}, humid=${chartHumidity != null}, gas=${chartGas != null}")
+
+        val tempEntries = history.mapIndexed { index, record ->
+            val temp = record.sensor.temperature.toFloat()
+            android.util.Log.d("MonitorCharts", "Temp entry $index: temp=$temp, createdAt=${record.createdAt}")
+            com.github.mikephil.charting.data.Entry(index.toFloat(), temp)
+        }
+
+        val humidEntries = history.mapIndexed { index, record ->
+            val humid = record.sensor.humidity.toFloat()
+            android.util.Log.d("MonitorCharts", "Humid entry $index: humid=$humid, createdAt=${record.createdAt}")
+            com.github.mikephil.charting.data.Entry(index.toFloat(), humid)
+        }
+
+        val gasEntries = when (state.selectedGasTab) {
+            GasTab.MQ2 -> history.mapIndexed { index, record ->
+                val gasValue = ((record.sensor.mq2Raw.toDouble() / 4095.0) * 1000).toFloat()
+                android.util.Log.d("MonitorCharts", "Gas MQ2 entry $index: gas=$gasValue, createdAt=${record.createdAt}")
+                com.github.mikephil.charting.data.Entry(index.toFloat(), gasValue)
+            }
+            GasTab.MQ135 -> history.mapIndexed { index, record ->
+                val gasValue = ((record.sensor.mq135Raw.toDouble() / 4095.0) * 1000).toFloat()
+                android.util.Log.d("MonitorCharts", "Gas MQ135 entry $index: gas=$gasValue, createdAt=${record.createdAt}")
+                com.github.mikephil.charting.data.Entry(index.toFloat(), gasValue)
+            }
+        }
+
+        android.util.Log.d("MonitorCharts", "Entries created: temp=${tempEntries.size}, humid=${humidEntries.size}, gas=${gasEntries.size}")
+        android.util.Log.d("MonitorCharts", "History size: ${history.size}")
+        android.util.Log.d("MonitorCharts", "About to create timestamps...")
+        
+        // Store original timestamps for X-axis display
+        val timestamps = history.map { 
+            android.util.Log.d("MonitorCharts", "Processing record: ${it.createdAt}")
+            ChartHelper.formatTimestamp(it.createdAt) 
+        }
+        android.util.Log.d("MonitorCharts", "Timestamps created: ${timestamps.size}, first=${timestamps.firstOrNull()}, last=${timestamps.lastOrNull()}")
+        
+        // Post chart updates to run after layout is complete
+        chartTemperature?.post {
+            try {
+                android.util.Log.d("MonitorCharts", "=== Inside post block for temp chart ===")
+                android.util.Log.d("MonitorCharts", "Chart dimensions: temp width=${chartTemperature?.width}, height=${chartTemperature?.height}")
+                
+                // Direct chart setup without ChartHelper
+                chartTemperature.description.isEnabled = false
+                chartTemperature.setTouchEnabled(true)
+                chartTemperature.isDragEnabled = true
+                chartTemperature.setScaleEnabled(true)
+                chartTemperature.setPinchZoom(true)
+                chartTemperature.setDrawGridBackground(false)
+                chartTemperature.legend.isEnabled = false
+                
+                // Configure X-axis
+                chartTemperature.xAxis.apply {
+                    position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                    setDrawGridLines(false)
+                    granularity = 1f
+                    textColor = android.graphics.Color.parseColor("#64748B")
+                    textSize = 10f
+                    setLabelCount(6, false) // Show maximum 6 labels
+                    valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                        override fun getFormattedValue(value: Float): String {
+                            val index = value.toInt()
+                            if (index >= 0 && index < timestamps.size) {
+                                val timestamp = timestamps[index]
+                                val date = java.util.Date(timestamp)
+                                val format = java.text.SimpleDateFormat("dd/MM", java.util.Locale.getDefault())
+                                return format.format(date)
+                            }
+                            return ""
+                        }
+                    }
+                }
+                
+                // Configure Y-axis with auto-scaling and padding
+                val tempValues = tempEntries.map { it.y }
+                val tempMin = tempValues.minOrNull() ?: 0f
+                val tempMax = tempValues.maxOrNull() ?: 0f
+                val tempPadding = (tempMax - tempMin) * 0.1f // 10% padding
+                
+                chartTemperature.axisLeft.apply {
+                    setDrawGridLines(true)
+                    gridColor = android.graphics.Color.parseColor("#E2E8F0")
+                    gridLineWidth = 0.5f
+                    textColor = android.graphics.Color.parseColor("#64748B")
+                    textSize = 10f
+                    setLabelCount(5, false)
+                    axisMinimum = tempMin - tempPadding
+                    axisMaximum = tempMax + tempPadding
+                    valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                        override fun getFormattedValue(value: Float): String {
+                            return String.format(java.util.Locale.getDefault(), "%.1f°C", value)
+                        }
+                    }
+                }
+                chartTemperature.axisRight.isEnabled = false
+                
+                // Set custom marker view with timestamp lookup
+                android.util.Log.d("MonitorCharts", "Creating marker view with ${timestamps.size} timestamps")
+                val markerView = com.example.safehome.ui.monitor.ChartHelper.ChartMarkerView(
+                    chartTemperature.context,
+                    "°C",
+                    timestamps
+                )
+                android.util.Log.d("MonitorCharts", "Marker view instance created: $markerView")
+                chartTemperature.marker = markerView
+                android.util.Log.d("MonitorCharts", "Marker view set to chart, current marker: ${chartTemperature.marker}")
+
+                // CHECK 1: Verify marker is not null
+                android.util.Log.d("MARKER", "marker = ${chartTemperature.marker}")
+
+                // CHECK 5: Verify marker attached
+                android.util.Log.d("MARKER", "marker attached = ${chartTemperature.marker != null}")
+
+                // Configure highlight behavior
+                chartTemperature.setHighlightPerDragEnabled(true)
+                chartTemperature.isHighlightPerDragEnabled = true
+                chartTemperature.setDrawMarkers(true) // Enable marker drawing
+                
+                val dataSet = com.github.mikephil.charting.data.LineDataSet(tempEntries, "Temperature").apply {
+                    color = android.graphics.Color.parseColor("#EF4444")
+                    setCircleColor(android.graphics.Color.parseColor("#EF4444"))
+                    lineWidth = 2.5f
+                    circleRadius = 4f
+                    setDrawCircleHole(false)
+                    setDrawValues(false)
+                    mode = com.github.mikephil.charting.data.LineDataSet.Mode.CUBIC_BEZIER
+                    cubicIntensity = 0.2f
+                    setDrawFilled(true)
+                    setFillColor(android.graphics.Color.argb(80, 239, 68, 68)) // Light red gradient
+                    highLightColor = android.graphics.Color.parseColor("#94A3B8") // Light gray for crosshair
+                    setDrawHighlightIndicators(true)
+                    setHighlightLineWidth(1f)
+                    setDrawHorizontalHighlightIndicator(false)
+                    setDrawVerticalHighlightIndicator(true)
+                }
+                
+                val lineData = com.github.mikephil.charting.data.LineData(dataSet)
+                android.util.Log.d("MonitorCharts", "Setting temp chart data with ${lineData.entryCount} entries")
+                chartTemperature.data = lineData
+
+                // CHECK 3: Check highlighted after setData
+                android.util.Log.d("MARKER", "chart.highlighted = ${chartTemperature.highlighted}")
+
+                android.util.Log.d("MonitorCharts", "Temp chart data set, visible range: ${chartTemperature.visibleXRange}")
+                chartTemperature.notifyDataSetChanged()
+                chartTemperature.invalidate()
+                android.util.Log.d("MonitorCharts", "Temp chart invalidated, starting animation")
+                chartTemperature.animateX(1000)
+                
+                android.util.Log.d("MonitorCharts", "=== Direct temp chart update complete ===")
+            } catch (e: Exception) {
+                android.util.Log.e("MonitorCharts", "Error updating temp chart", e)
+            }
+        }
+        
+        chartHumidity?.post {
+            try {
+                android.util.Log.d("MonitorCharts", "=== Inside post block for humid chart ===")
+                android.util.Log.d("MonitorCharts", "Chart dimensions: humid width=${chartHumidity?.width}, height=${chartHumidity?.height}")
+                
+                // Direct chart setup without ChartHelper
+                chartHumidity.description.isEnabled = false
+                chartHumidity.setTouchEnabled(true)
+                chartHumidity.isDragEnabled = true
+                chartHumidity.setScaleEnabled(true)
+                chartHumidity.setPinchZoom(true)
+                chartHumidity.setDrawGridBackground(false)
+                chartHumidity.legend.isEnabled = false
+                
+                // Configure X-axis
+                chartHumidity.xAxis.apply {
+                    position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                    setDrawGridLines(false)
+                    granularity = 86400000f // 1 day in milliseconds
+                    textColor = android.graphics.Color.parseColor("#64748B")
+                    textSize = 10f
+                    setLabelCount(6, false) // Show maximum 6 labels
+                    valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                        override fun getFormattedValue(value: Float): String {
+                            val date = java.util.Date(value.toLong())
+                            val format = java.text.SimpleDateFormat("dd/MM", java.util.Locale.getDefault())
+                            return format.format(date)
+                        }
+                    }
+                }
+                
+                // Configure Y-axis with auto-scaling and padding
+                val humidValues = humidEntries.map { it.y }
+                val humidMin = humidValues.minOrNull() ?: 0f
+                val humidMax = humidValues.maxOrNull() ?: 0f
+                val humidPadding = (humidMax - humidMin) * 0.1f // 10% padding
+                
+                chartHumidity.axisLeft.apply {
+                    setDrawGridLines(true)
+                    gridColor = android.graphics.Color.parseColor("#E2E8F0")
+                    gridLineWidth = 0.5f
+                    textColor = android.graphics.Color.parseColor("#64748B")
+                    textSize = 10f
+                    setLabelCount(5, false)
+                    axisMinimum = humidMin - humidPadding
+                    axisMaximum = humidMax + humidPadding
+                    valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                        override fun getFormattedValue(value: Float): String {
+                            return String.format(java.util.Locale.getDefault(), "%.1f%%", value)
+                        }
+                    }
+                }
+                chartHumidity.axisRight.isEnabled = false
+                
+                // Set custom marker view with timestamp lookup
+                android.util.Log.d("MonitorCharts", "Creating marker view for humidity with ${timestamps.size} timestamps")
+                val markerView = com.example.safehome.ui.monitor.ChartHelper.ChartMarkerView(
+                    chartHumidity.context,
+                    "%",
+                    timestamps
+                )
+                chartHumidity.marker = markerView
+                android.util.Log.d("MonitorCharts", "Marker view set to humidity chart")
+                
+                // Configure highlight behavior
+                chartHumidity.setHighlightPerDragEnabled(true)
+                chartHumidity.isHighlightPerDragEnabled = true
+                chartHumidity.setDrawMarkers(true) // Enable marker drawing
+                
+                val dataSet = com.github.mikephil.charting.data.LineDataSet(humidEntries, "Humidity").apply {
+                    color = android.graphics.Color.parseColor("#3B82F6")
+                    setCircleColor(android.graphics.Color.parseColor("#3B82F6"))
+                    lineWidth = 2.5f
+                    circleRadius = 4f
+                    setDrawCircleHole(false)
+                    setDrawValues(false)
+                    mode = com.github.mikephil.charting.data.LineDataSet.Mode.CUBIC_BEZIER
+                    cubicIntensity = 0.2f
+                    setDrawFilled(true)
+                    setFillColor(android.graphics.Color.argb(80, 59, 130, 246)) // Light blue gradient
+                    highLightColor = android.graphics.Color.parseColor("#94A3B8") // Light gray for crosshair
+                    setDrawHighlightIndicators(true)
+                    setHighlightLineWidth(1f)
+                    setDrawHorizontalHighlightIndicator(false)
+                    setDrawVerticalHighlightIndicator(true)
+                }
+                
+                val lineData = com.github.mikephil.charting.data.LineData(dataSet)
+                chartHumidity.data = lineData
+                chartHumidity.notifyDataSetChanged()
+                chartHumidity.invalidate()
+                chartHumidity.animateX(1000)
+                
+                android.util.Log.d("MonitorCharts", "=== Direct humid chart update complete ===")
+            } catch (e: Exception) {
+                android.util.Log.e("MonitorCharts", "Error updating humid chart", e)
+            }
+        }
+        
+        chartGas?.post {
+            try {
+                android.util.Log.d("MonitorCharts", "=== Inside post block for gas chart ===")
+                android.util.Log.d("MonitorCharts", "Chart dimensions: gas width=${chartGas?.width}, height=${chartGas?.height}")
+                
+                // Direct chart setup without ChartHelper
+                chartGas.description.isEnabled = false
+                chartGas.setTouchEnabled(true)
+                chartGas.isDragEnabled = true
+                chartGas.setScaleEnabled(true)
+                chartGas.setPinchZoom(true)
+                chartGas.setDrawGridBackground(false)
+                chartGas.legend.isEnabled = false
+                
+                // Configure X-axis
+                chartGas.xAxis.apply {
+                    position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                    setDrawGridLines(false)
+                    granularity = 1f
+                    textColor = android.graphics.Color.parseColor("#64748B")
+                    textSize = 10f
+                    setLabelCount(6, false) // Show maximum 6 labels
+                    valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                        override fun getFormattedValue(value: Float): String {
+                            val index = value.toInt()
+                            if (index >= 0 && index < timestamps.size) {
+                                val timestamp = timestamps[index]
+                                val date = java.util.Date(timestamp)
+                                val format = java.text.SimpleDateFormat("dd/MM", java.util.Locale.getDefault())
+                                return format.format(date)
+                            }
+                            return ""
+                        }
+                    }
+                }
+                
+                // Configure Y-axis with auto-scaling and padding
+                val gasValues = gasEntries.map { it.y }
+                val gasMin = gasValues.minOrNull() ?: 0f
+                val gasMax = gasValues.maxOrNull() ?: 0f
+                val gasPadding = (gasMax - gasMin) * 0.1f // 10% padding
+                
+                chartGas.axisLeft.apply {
+                    setDrawGridLines(true)
+                    gridColor = android.graphics.Color.parseColor("#E2E8F0")
+                    gridLineWidth = 0.5f
+                    textColor = android.graphics.Color.parseColor("#64748B")
+                    textSize = 10f
+                    setLabelCount(5, false)
+                    axisMinimum = gasMin - gasPadding
+                    axisMaximum = gasMax + gasPadding
+                    valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                        override fun getFormattedValue(value: Float): String {
+                            return String.format(java.util.Locale.getDefault(), "%.0f ppm", value)
+                        }
+                    }
+                }
+                chartGas.axisRight.isEnabled = false
+                
+                // Set custom marker view with timestamp lookup
+                android.util.Log.d("MonitorCharts", "Creating marker view for gas with ${timestamps.size} timestamps")
+                val markerView = com.example.safehome.ui.monitor.ChartHelper.ChartMarkerView(
+                    chartGas.context,
+                    " ppm",
+                    timestamps
+                )
+                chartGas.marker = markerView
+                android.util.Log.d("MonitorCharts", "Marker view set to gas chart")
+                
+                // Configure highlight behavior
+                chartGas.setHighlightPerDragEnabled(true)
+                chartGas.isHighlightPerDragEnabled = true
+                chartGas.setDrawMarkers(true) // Enable marker drawing
+                
+                val dataSet = com.github.mikephil.charting.data.LineDataSet(gasEntries, "Gas").apply {
+                    color = android.graphics.Color.parseColor("#D97706")
+                    setCircleColor(android.graphics.Color.parseColor("#D97706"))
+                    lineWidth = 2.5f
+                    circleRadius = 4f
+                    setDrawCircleHole(false)
+                    setDrawValues(false)
+                    mode = com.github.mikephil.charting.data.LineDataSet.Mode.CUBIC_BEZIER
+                    cubicIntensity = 0.2f
+                    setDrawFilled(true)
+                    setFillColor(android.graphics.Color.argb(80, 217, 119, 6)) // Light orange gradient
+                    highLightColor = android.graphics.Color.parseColor("#94A3B8") // Light gray for crosshair
+                    setDrawHighlightIndicators(true)
+                    setHighlightLineWidth(1f)
+                    setDrawHorizontalHighlightIndicator(false)
+                    setDrawVerticalHighlightIndicator(true)
+                }
+                
+                val lineData = com.github.mikephil.charting.data.LineData(dataSet)
+                chartGas.data = lineData
+                chartGas.notifyDataSetChanged()
+                chartGas.invalidate()
+                chartGas.animateX(1000)
+                
+                android.util.Log.d("MonitorCharts", "=== Direct gas chart update complete ===")
+            } catch (e: Exception) {
+                android.util.Log.e("MonitorCharts", "Error updating gas chart", e)
+            }
+        }
+
+        val tempValues = history.map { it.sensor.temperature }
+        val humidValues = history.map { it.sensor.humidity }
+        val gasValues = when (state.selectedGasTab) {
+            GasTab.MQ2 -> history.map { (it.sensor.mq2Raw.toDouble() / 4095.0) * 1000 }
+            GasTab.MQ135 -> history.map { (it.sensor.mq135Raw.toDouble() / 4095.0) * 1000 }
+        }
+
+        val (tempMin, tempMax) = ChartHelper.getMinMax(tempValues)
+        val (humidMin, humidMax) = ChartHelper.getMinMax(humidValues)
+        val (gasMin, gasMax) = ChartHelper.getMinMax(gasValues)
+    }
+
+    private fun updateFlameTimeline(state: com.example.safehome.ui.monitor.MonitorUiState) {
+        val history = state.history
+        
+        // Filter to show only state change events
+        val flameEvents = mutableListOf<FlameEvent>()
+        var lastFlameState: Boolean? = null
+        
+        for (record in history.reversed()) {
+            val currentFlameState = record.sensor.flameDetected
+            if (lastFlameState == null || currentFlameState != lastFlameState) {
+                // State changed or this is the first record
+                flameEvents.add(FlameEvent(record.createdAt, currentFlameState, true))
+                lastFlameState = currentFlameState
+            }
+        }
+
+        val txtFlameEmpty = findViewById<TextView>(R.id.txtFlameEmpty)
+        val recyclerFlameTimeline = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerFlameTimeline)
+
+        if (flameEvents.isEmpty()) {
+            txtFlameEmpty?.visibility = View.VISIBLE
+            recyclerFlameTimeline?.visibility = View.GONE
+        } else {
+            txtFlameEmpty?.visibility = View.GONE
+            recyclerFlameTimeline?.visibility = View.VISIBLE
+            flameTimelineAdapter.submitEvents(flameEvents)
+        }
+    }
+
+    private fun updateRecentHistory(state: com.example.safehome.ui.monitor.MonitorUiState) {
+        recentHistoryAdapter.submitList(state.history.take(10))
+    }
+
+    private fun updateTimeFilterButtons(selectedFilter: TimeFilter) {
+        val btnFilter24h = findViewById<MaterialButton>(R.id.btnFilter24h)
+        val btnFilter7d = findViewById<MaterialButton>(R.id.btnFilter7d)
+        val btnFilter30d = findViewById<MaterialButton>(R.id.btnFilter30d)
+
+        val selectedColor = android.graphics.Color.parseColor("#3B82F6")
+        val unselectedColor = android.graphics.Color.parseColor("#64748B")
+        val selectedBg = android.graphics.Color.parseColor("#DBEAFE")
+        val unselectedBg = android.graphics.Color.parseColor("#F1F5F9")
+
+        when (selectedFilter) {
+            TimeFilter.HOURS_24 -> {
+                btnFilter24h?.setTextColor(selectedColor)
+                btnFilter24h?.backgroundTintList = android.content.res.ColorStateList.valueOf(selectedBg)
+                btnFilter7d?.setTextColor(unselectedColor)
+                btnFilter7d?.backgroundTintList = android.content.res.ColorStateList.valueOf(unselectedBg)
+                btnFilter30d?.setTextColor(unselectedColor)
+                btnFilter30d?.backgroundTintList = android.content.res.ColorStateList.valueOf(unselectedBg)
+            }
+            TimeFilter.DAYS_7 -> {
+                btnFilter24h?.setTextColor(unselectedColor)
+                btnFilter24h?.backgroundTintList = android.content.res.ColorStateList.valueOf(unselectedBg)
+                btnFilter7d?.setTextColor(selectedColor)
+                btnFilter7d?.backgroundTintList = android.content.res.ColorStateList.valueOf(selectedBg)
+                btnFilter30d?.setTextColor(unselectedColor)
+                btnFilter30d?.backgroundTintList = android.content.res.ColorStateList.valueOf(unselectedBg)
+            }
+            TimeFilter.DAYS_30 -> {
+                btnFilter24h?.setTextColor(unselectedColor)
+                btnFilter24h?.backgroundTintList = android.content.res.ColorStateList.valueOf(unselectedBg)
+                btnFilter7d?.setTextColor(unselectedColor)
+                btnFilter7d?.backgroundTintList = android.content.res.ColorStateList.valueOf(unselectedBg)
+                btnFilter30d?.setTextColor(selectedColor)
+                btnFilter30d?.backgroundTintList = android.content.res.ColorStateList.valueOf(selectedBg)
+            }
+        }
     }
 
     private fun isTimestampExpired(createdAt: String?): Boolean {
@@ -463,7 +1260,9 @@ class HomeActivity : AppCompatActivity() {
 
         val homeScrollView = findViewById<View>(R.id.homeScrollView) ?: return
         val layoutPlaceholderContent = findViewById<View>(R.id.layoutPlaceholderContent) ?: return
+        val layoutMonitorTabContent = findViewById<View>(R.id.layoutMonitorTabContent) ?: return
         val layoutDevicesTabContent = findViewById<View>(R.id.layoutDevicesTabContent) ?: return
+        val layoutNotificationsTabContent = findViewById<View>(R.id.layoutNotificationsTabContent) ?: return
         val cardPlaceholderPanel = findViewById<View>(R.id.cardPlaceholderPanel) ?: return
         val btnNotifications = findViewById<View>(R.id.btnNotifications) ?: return
         val btnLogout = findViewById<View>(R.id.btnLogout) ?: return
@@ -499,7 +1298,9 @@ class HomeActivity : AppCompatActivity() {
         txtTabAlerts.setTypeface(null, android.graphics.Typeface.NORMAL)
         txtTabSettings.setTypeface(null, android.graphics.Typeface.NORMAL)
 
+        layoutMonitorTabContent.visibility = View.GONE
         layoutDevicesTabContent.visibility = View.GONE
+        layoutNotificationsTabContent.visibility = View.GONE
         cardPlaceholderPanel.visibility = View.VISIBLE
         btnNotifications.visibility = View.VISIBLE
         btnLogout.visibility = View.VISIBLE
@@ -521,11 +1322,11 @@ class HomeActivity : AppCompatActivity() {
                 txtTabMonitor.setTypeface(null, android.graphics.Typeface.BOLD)
 
                 homeScrollView.visibility = View.GONE
-                layoutPlaceholderContent.visibility = View.VISIBLE
+                layoutPlaceholderContent.visibility = View.GONE
+                layoutMonitorTabContent.visibility = View.VISIBLE
 
-                imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_monitor)
-                txtPlaceholderTitle.text = "Giám Sát Hệ Thống"
-                txtPlaceholderDesc.text = "Biểu đồ trực quan và thống kê dữ liệu cảm biến của bạn sẽ được hiển thị tại đây."
+                // Force update to show device list
+                updateMonitorState(monitorViewModel.uiState.value)
             }
             2 -> {
                 viewDevicesActiveBg.visibility = View.VISIBLE
@@ -547,11 +1348,11 @@ class HomeActivity : AppCompatActivity() {
                 txtTabAlerts.setTypeface(null, android.graphics.Typeface.BOLD)
 
                 homeScrollView.visibility = View.GONE
-                layoutPlaceholderContent.visibility = View.VISIBLE
-
-                imgPlaceholderIcon.setImageResource(R.drawable.ic_footer_alerts)
-                txtPlaceholderTitle.text = "Hộp Thư Cảnh Báo"
-                txtPlaceholderDesc.text = "Lịch sử và nhật ký các thông báo khẩn cấp khi phát hiện rò rỉ khí gas, khói hoặc lửa."
+                layoutPlaceholderContent.visibility = View.GONE
+                layoutNotificationsTabContent.visibility = View.VISIBLE
+                cardPlaceholderPanel.visibility = View.GONE
+                btnNotifications.visibility = View.GONE
+                btnLogout.visibility = View.GONE
             }
             4 -> {
                 viewSettingsActiveBg.visibility = View.VISIBLE
@@ -566,6 +1367,29 @@ class HomeActivity : AppCompatActivity() {
                 txtPlaceholderTitle.text = "Cài Đặt Hệ Thống"
                 txtPlaceholderDesc.text = "Tùy chỉnh thông tin cá nhân, cấu hình ngưỡng cảnh báo khẩn cấp và thiết lập tài khoản."
             }
+        }
+    }
+
+    private fun formatTimeAgo(isoString: String): String {
+        return try {
+            val formatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
+            val date = formatter.parse(isoString)
+            val now = java.util.Date()
+            val diff = now.time - (date?.time ?: 0)
+
+            val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(diff)
+            val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(diff)
+            val hours = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(diff)
+            val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
+
+            when {
+                seconds < 60 -> "$seconds giây trước"
+                minutes < 60 -> "$minutes phút trước"
+                hours < 24 -> "$hours giờ trước"
+                else -> "$days ngày trước"
+            }
+        } catch (e: Exception) {
+            "N/A"
         }
     }
 

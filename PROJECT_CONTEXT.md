@@ -25,8 +25,8 @@ Thong tin chinh:
 - Main launcher hien tai: `LoginActivity`
 - Man hinh auth: `LoginActivity`, `RegisterActivity`
 - Man hinh sau dang nhap: `HomeActivity`
-- Backend base URL: `https://smarthome-backend-lvin.onrender.com/`
-- API docs da xac minh: `https://smarthome-backend-lvin.onrender.com/api-docs/`
+- Backend base URL: `https://smarthome-backend-1-4oly.onrender.com/`
+- API docs da xac minh: `https://smarthome-backend-1-4oly.onrender.com/api-docs/`
 
 ## 3. Architecture Layers
 
@@ -139,7 +139,7 @@ Repositories Gradle hien tai:
 
 - `app/src/main/java/com/example/safehome/data/remote/RetrofitClient.kt`
   - Tao Retrofit client.
-  - Base URL: `https://smarthome-backend-lvin.onrender.com/`
+  - Base URL: `https://smarthome-backend-1-4oly.onrender.com/`
   - Gan `AuthInterceptor` vao OkHttpClient.
 
 - `app/src/main/java/com/example/safehome/data/remote/AuthInterceptor.kt`

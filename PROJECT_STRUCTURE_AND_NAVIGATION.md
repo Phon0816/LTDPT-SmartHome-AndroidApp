@@ -364,12 +364,12 @@ class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
 
 #### Bước 2: Khởi tạo HttpClient và Retrofit - [RetrofitClient.kt](file:///c:/Users/Admin/IdeaProjects/SmartHomeApp/app/src/main/java/com/example/safehome/data/remote/RetrofitClient.kt)
 Đối tượng `RetrofitClient` đóng vai trò là một Singleton Factory cung cấp các API Interface đã được cấu hình HttpClient:
-* **Base URL**: `https://smarthome-backend-lvin.onrender.com/`
+* **Base URL**: `https://smarthome-backend-1-4oly.onrender.com/`
 * Cấu hình chuyển đổi Json tự động bằng Gson (`GsonConverterFactory`).
 * Hàm tạo API mẫu:
 ```kotlin
 object RetrofitClient {
-    private const val BASE_URL = "https://smarthome-backend-lvin.onrender.com/"
+    private const val BASE_URL = "https://smarthome-backend-1-4oly.onrender.com/"
 
     private fun createRetrofit(tokenManager: TokenManager): Retrofit {
         val okHttpClient = OkHttpClient.Builder()

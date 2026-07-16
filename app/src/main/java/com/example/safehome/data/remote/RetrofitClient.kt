@@ -7,7 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    private const val BASE_URL = "https://smarthome-backend-lvin.onrender.com/"
+    private const val BASE_URL = "https://smarthome-backend-1-4oly.onrender.com/"
 
     fun createAuthApi(tokenManager: TokenManager): AuthApi {
         return createRetrofit(tokenManager).create(AuthApi::class.java)
