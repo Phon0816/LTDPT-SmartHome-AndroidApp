@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface DeviceApi {
 
@@ -18,7 +19,9 @@ interface DeviceApi {
 
     @GET("api/user/devices/{id}/history")
     suspend fun getDeviceHistory(
-        @Path("id") id: Int
+        @Path("id") id: Int,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 100
     ): Response<DeviceHistoryResponse>
 
     @POST("api/user/claim")

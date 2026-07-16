@@ -7,12 +7,176 @@
     android:background="@color/safehome_background"
     tools:context=".ui.device.DeviceHistoryActivity">
 
-    <LinearLayout
+    <!-- Header -->
+    <RelativeLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@drawable/ic_back"
+            app:tint="@color/safehome_text_dark" />
+
+        <TextView
+            android:id="@+id/txtTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="Lịch sử cảm biến"
+            android:textColor="@color/safehome_text_dark"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+    <!-- RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerHistory"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_below="@id/header"
+        android:clipToPadding="false"
+        android:paddingStart="4dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="80dp"
+        tools:listitem="@layout/item_history" />
+
+    <!-- Pagination Controls -->
+    <LinearLayout
+        android:id="@+id/layoutPagination"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_placeholder_glass_card"
+        android:elevation="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPrevious"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Trước"
+            android:textSize="12sp"
+            app:backgroundTint="@color/safehome_blue_deep"
+            app:cornerRadius="8dp" />
+
+        <TextView
+            android:id="@+id/txtPageInfo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Trang 1 / 1"
+            android:textColor="#64748B"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNext"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Tiếp"
+            android:textSize="12sp"
+            app:backgroundTint="@color/safehome_blue_deep"
+            app:cornerRadius="8dp" />
+    </LinearLayout>
+
+    <!-- Loading State -->
+    <LinearLayout
+        android:id="@+id/layoutLoading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/header"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="32dp">
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminateTint="@color/safehome_blue_deep" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Đang tải lịch sử..."
+            android:textColor="#64748B"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Error State -->
+    <LinearLayout
+        android:id="@+id/layoutError"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/header"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginBottom="20dp"
+            android:src="@drawable/ic_error"
+            app:tint="#94A3B8" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Không thể tải lịch sử"
+            android:textColor="#64748B"
+            android:textSize="16sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRetry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thử lại"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/safehome_blue_deep"
+            app:cornerRadius="12dp" />
+    </LinearLayout>
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/layoutEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/header"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="80dp"
@@ -22,18 +186,17 @@
             app:tint="#94A3B8" />
 
         <TextView
-            android:id="@+id/txtTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="Lịch sử thiết bị"
+            android:layout_marginBottom="8dp"
+            android:text="Chưa có lịch sử"
             android:textColor="#64748B"
             android:textSize="16sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tính năng này sẽ được phát triển sau"
+            android:text="Dữ liệu cảm biến sẽ hiển thị ở đây"
             android:textColor="#94A3B8"
             android:textSize="14sp" />
     </LinearLayout>
