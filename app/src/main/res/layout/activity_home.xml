@@ -171,6 +171,7 @@
                         android:layout_marginBottom="4dp" />
                     
                     <TextView
+                        android:id="@+id/txtSafetyScore"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="92%"
@@ -200,6 +201,7 @@
                             app:tint="#64748B"
                             android:layout_marginEnd="4dp" />
                         <TextView
+                            android:id="@+id/txtSafetyLastUpdate"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Cập nhật 10 giây trước"
@@ -243,6 +245,17 @@
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"/>
             <TextView
+                android:id="@+id/txtSensorCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="6 cảm biến"
+                android:textColor="#64748B"
+                android:textSize="13sp"
+                android:layout_toStartOf="@id/btnViewDetailSensors"
+                android:layout_marginEnd="8dp"
+                android:layout_centerVertical="true" />
+            <TextView
+                android:id="@+id/btnViewDetailSensors"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Xem chi tiết >"
@@ -669,11 +682,28 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Placeholder Content for non-Home tabs (Monitor, Devices, Alerts, Settings) -->
+    <!-- Monitor Tab Content -->
+    <FrameLayout
+        android:id="@+id/layoutMonitorTabContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/header"
+        android:layout_above="@id/footerCard"
+        android:visibility="gone">
+
+        <include
+            android:id="@+id/monitorContentInclude"
+            layout="@layout/layout_monitor_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <!-- Placeholder Content for non-Home tabs (Devices, Alerts, Settings) -->
     <LinearLayout
         android:id="@+id/layoutPlaceholderContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_below="@id/header"
         android:orientation="vertical"
         android:padding="24dp"
         android:gravity="center"
@@ -821,6 +851,119 @@
             android:textStyle="bold"
             app:backgroundTint="@color/safehome_primary_blue"
             app:cornerRadius="18dp" />
+    </LinearLayout>
+
+    <!-- Notifications Tab Content -->
+    <LinearLayout
+        android:id="@+id/layoutNotificationsTabContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/header"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="26dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="96dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:text="Thông báo"
+            android:textColor="@color/safehome_text_dark"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/progressNotificationsLoading"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="76dp"
+            android:indeterminateTint="@color/safehome_primary_blue" />
+
+        <LinearLayout
+            android:id="@+id/layoutNotificationsEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="60dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="54dp"
+                android:layout_height="54dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_notification_icon_info"
+                android:padding="14dp"
+                android:src="@drawable/ic_notification_bell"
+                app:tint="@color/safehome_blue_deep" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
+                android:text="Chưa có thông báo"
+                android:textColor="@color/safehome_text_dark"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="Các cảnh báo mới từ SafeHome sẽ xuất hiện tại đây."
+                android:textColor="@color/safehome_text_muted"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutNotificationsError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="60dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/txtNotificationsError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Không thể tải thông báo"
+                android:textColor="@color/safehome_text_dark"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNotificationsRetry"
+                android:layout_width="wrap_content"
+                android:layout_height="46dp"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="Thử lại"
+                android:textAllCaps="false"
+                app:backgroundTint="@color/safehome_primary_blue"
+                app:cornerRadius="16dp" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerNotificationsTab"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:paddingBottom="12dp"
+            tools:itemCount="3"
+            tools:listitem="@layout/item_notification" />
     </LinearLayout>
 
     <!-- Glassmorphic Footer Bottom Navigation Bar -->
